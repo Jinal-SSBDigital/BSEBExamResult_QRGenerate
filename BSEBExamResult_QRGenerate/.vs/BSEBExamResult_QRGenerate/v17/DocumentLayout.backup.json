@@ -1,0 +1,88 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|c:\\jinal\\git\\bsebexamresult_qrgenerate\\bsebexamresult_qrgenerate\\controllers\\qrgenerate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|solutionrelative:controllers\\qrgenerate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|c:\\jinal\\git\\bsebexamresult_qrgenerate\\bsebexamresult_qrgenerate\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|c:\\jinal\\git\\bsebexamresult_qrgenerate\\bsebexamresult_qrgenerate\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|c:\\jinal\\git\\bsebexamresult_qrgenerate\\bsebexamresult_qrgenerate\\data\\dbhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B8C6713D-2709-40C7-A2CA-634058F24A0D}|BSEBExamResult_QRGenerate.csproj|solutionrelative:data\\dbhelper.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 211,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-01T07:20:49.731Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAACIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-01T07:20:03.557Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DbHelper.cs",
+              "DocumentMoniker": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Data\\DbHelper.cs",
+              "RelativeDocumentMoniker": "Data\\DbHelper.cs",
+              "ToolTip": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Data\\DbHelper.cs",
+              "RelativeToolTip": "Data\\DbHelper.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAtwBEAAABeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-01T05:26:54.429Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "QRGenerate.cs",
+              "DocumentMoniker": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Controllers\\QRGenerate.cs",
+              "RelativeDocumentMoniker": "Controllers\\QRGenerate.cs",
+              "ToolTip": "C:\\Jinal\\Git\\BSEBExamResult_QRGenerate\\BSEBExamResult_QRGenerate\\Controllers\\QRGenerate.cs",
+              "RelativeToolTip": "Controllers\\QRGenerate.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-01T05:14:04.378Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
