@@ -1,11 +1,13 @@
-﻿using BSEBExamResult_QRGenerate.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using BSEBExamResult_QRGenerate.Data;
+using BSEBExamResult_QRGenerate.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 
+
 namespace BSEBExamResult_QRGenerate.Data
 {
+
     public class DbHelper
     {
         private readonly AppDBContext _context;
@@ -17,21 +19,23 @@ namespace BSEBExamResult_QRGenerate.Data
 
         public async Task<StudentResult> GetStudentResultAsync(string rollcode, string rollno)
         {
-            using var conn=_context.Database.GetDbConnection();
+            using var conn = _context.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            using var cmd=conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = "LoginSp";
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.Parameters.Add(new SqlParameter("@rollcode", rollcode));
             cmd.Parameters.Add(new SqlParameter("@rollno", rollno));
 
-            using var reader= await cmd.ExecuteReaderAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
 
-            if(!await reader.ReadAsync())
+            // 🔹 Result Set 1: Student Header
+            if (!await reader.ReadAsync())
                 return null;
-            var student =new StudentResult
+
+            var student = new StudentResult
             {
                 Status = reader.GetInt32(reader.GetOrdinal("status")),
                 RollCode = reader["rollcode"].ToString(),
@@ -44,7 +48,8 @@ namespace BSEBExamResult_QRGenerate.Data
                 Division = reader["DIVISION"].ToString()
             };
 
-            while(await reader.ReadAsync())
+            // 🔹 Read all subject result sets
+            while (await reader.NextResultAsync())
             {
                 while (await reader.ReadAsync())
                 {
@@ -61,6 +66,7 @@ namespace BSEBExamResult_QRGenerate.Data
                     });
                 }
             }
+
             return student;
         }
     }
