@@ -1,0 +1,6 @@
+@BSEBExamResult_QRGenerate_HostAddress = http://localhost:5139
+
+GET {{BSEBExamResult_QRGenerate_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
