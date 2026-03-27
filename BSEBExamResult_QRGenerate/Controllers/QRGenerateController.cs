@@ -2,12 +2,12 @@
 using BSEBExamResult_QRGenerate.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using QRCoder;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO.Compression;
-using System.Text;
 
 namespace BSEBExamResult_QRGenerate.Controllers
 {
@@ -38,7 +38,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
                 student.RollCode,
                 student.RollNo,
                 student.BsebUniqueID,
-                student.dob,
+                //student.dob,
                 student.NameoftheCandidate,
                 student.FathersName,
                 student.CollegeName,
@@ -88,6 +88,305 @@ namespace BSEBExamResult_QRGenerate.Controllers
             return File(ms.ToArray(), "image/png");
         }
 
+
+        [HttpGet("GenerateQRCodeWithCSV")] // save in CSV file multiple QR with CSV and ZIP Download this is my old code 
+        public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
+        {
+            if (string.IsNullOrEmpty(rollno))
+                return BadRequest("RollNo required");
+
+            var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+            if (!rollCodes.Any())
+                return Content("No data found");
+
+            var csvRows = new List<string>
+                {
+                    "RollNo,RollCode,EncryptedValue"
+                };
+
+            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            string qrFolder = Path.Combine(basePath, "qr");
+            string csvFolder = Path.Combine(basePath, "csv");
+            string zipFolder = Path.Combine(basePath, "zip");
+
+            Directory.CreateDirectory(qrFolder);
+            Directory.CreateDirectory(csvFolder);
+            Directory.CreateDirectory(zipFolder);
+
+            foreach (var rc in rollCodes)
+            {
+                var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+                if (student == null || student.Status != 1)
+                //if (student == null || student.Status != 1)
+                    continue;
+
+                //var modified = new
+                //{
+                //    RollCode = student.RollCode,
+                //    RollNo = student.RollNo,
+                //    BsebUniqueID = student.BsebUniqueID,
+
+                //    RegistrationNo = student.RegistrationNo,
+                //    NameoftheCandidate = student.NameoftheCandidate,
+                //    FathersName = student.FathersName,
+                //    CollegeName = student.CollegeName,
+                //    Faculty = student.Faculty,
+                //    TotalAggregateMarkinNumber = student.TotalAggregateMarkinNumber,
+                //    TotalAggregateMarkinWords = student.TotalAggregateMarkinWords,
+                //    Division = student.Division,
+
+                //    SubjectResults = student.SubjectResults.Select(sub => new
+                //    {
+                //        Sub = sub.Sub,
+                //        MaxMark = sub.MaxMark,
+                //        PassMark = sub.PassMark,
+                //        Theory = sub.Theory,
+                //        OB_PR = sub.OB_PR,
+                //        GRC_THO = sub.GRC_THO,
+                //        GRC_PR = sub.GRC_PR,
+                //        TotSub = sub.TotSub,
+                //        CCEMarks = sub.CCEMarks,
+
+                //        // 🔹 Add SubjectGroupCode based on SubjectGroupName
+                //        SubjectGroupCode =
+                //            sub.SubjectGroupName != null && sub.SubjectGroupName.Contains("अनिवार्य") ? 1 :
+                //            sub.SubjectGroupName != null && sub.SubjectGroupName.Contains("Elective") ? 2 : 3
+                //    })
+                //};
+
+                //var json = JsonConvert.SerializeObject(modified);
+                var json = JsonConvert.SerializeObject(student);
+                var compressed = CompressionHelper.Compress(json);
+                var encrypted = EncryptionHelper.Encrypt(compressed);
+                // 🔹 Build full URL with encrypted data
+                string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}"; // test live url
+             //string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?enc={encrypted}"; // live url
+
+                // Generate QR
+                // Generate QR
+                using var generator = new QRCodeGenerator();
+                using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new QRCode(qrData);
+                using var bitmap = qrCode.GetGraphic(1); // ✅ Changed from 5 → 10 for Version 2 size
+
+                string qrFile = $"{rollno}_{rc}.png";
+                string qrPath = Path.Combine(qrFolder, qrFile);
+                bitmap.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
+
+                csvRows.Add($"{rollno},{rc},\"{qrPayload}\"");
+                //csvRows.Add($"{rollno},{rc},\"{encrypted}\"");
+            }
+
+            if (csvRows.Count == 1)
+                return Content("No valid result");
+
+            // Save CSV
+            string csvFile = $"qr_{rollno}.csv";
+            string csvPath = Path.Combine(csvFolder, csvFile);
+            System.IO.File.WriteAllLines(csvPath, csvRows);
+
+            // Create ZIP
+            string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
+            string zipPath = Path.Combine(zipFolder, zipFileName);
+
+            using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
+                    zip.CreateEntryFromFile(file, Path.GetFileName(file));
+
+                zip.CreateEntryFromFile(csvPath, csvFile);
+            }
+
+            byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+
+            return File(zipBytes, "application/zip", zipFileName);
+        }
+
+        [HttpGet("GenerateQRCodeOptimized")]
+        public async Task<IActionResult> GenerateQRCodeOptimized(string rollno)
+        {
+            if (string.IsNullOrEmpty(rollno))
+                return BadRequest("RollNo required");
+
+            var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+            if (!rollCodes.Any())
+                return Content("No data found");
+
+            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            string qrFolder = Path.Combine(basePath, "qr");
+
+            Directory.CreateDirectory(qrFolder);
+
+            var filePaths = new List<string>();
+
+            foreach (var rc in rollCodes)
+            {
+                var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+
+                if (student == null || student.Status != 1)
+                    continue;
+
+                // 🔐 Encrypted payload
+                //string encrypted = QrUtility.GenerateEncryptedPayload(student);
+                string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
+                // 🔗 URL inside QR
+                string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
+
+                // ⚠️ Length check
+                if (qrPayload.Length > 2000)
+                    continue;
+
+                using var qrGenerator = new QRCodeGenerator();
+                var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
+
+                using var qrCode = new QRCode(qrData);
+                using Bitmap qrImage = qrCode.GetGraphic(2);
+
+                string fileName = $"{student.RollNo}_{student.RollCode}.png";
+                string filePath = Path.Combine(qrFolder, fileName);
+
+                qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+                filePaths.Add(filePath);
+            }
+
+            return Ok(new
+            {
+                message = "QR Generated Successfully",
+                count = filePaths.Count
+            });
+        }
+        //[HttpGet("GenerateQRCodeOptimized")]
+        //public async Task<IActionResult> GenerateQRCodeOptimized(string rollno)
+        //{
+        //    if (string.IsNullOrEmpty(rollno))
+        //        return BadRequest("RollNo required");
+
+        //    var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+        //    if (!rollCodes.Any())
+        //        return Content("No data found");
+
+        //    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    string qrFolder = Path.Combine(basePath, "qr");
+
+        //    Directory.CreateDirectory(qrFolder);
+
+        //    var filePaths = new List<string>();
+
+        //    foreach (var rc in rollCodes)
+        //    {
+        //        var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+
+        //        if (student == null || student.Status != 1)
+        //            continue;
+
+        //        // 🔹 Generate optimized QR data
+        //        string finalData = QrUtility.GenerateFinalQrData(student);
+
+        //        // 🔥 Safety check (VERY IMPORTANT)
+        //        if (finalData.Length > 1200)
+        //            continue; // skip large data (prevents scan failure)
+
+        //        // 🔹 Generate QR
+        //        using var qrGenerator = new QRCodeGenerator();
+        //        var qrData = qrGenerator.CreateQrCode(finalData, QRCodeGenerator.ECCLevel.L);
+
+        //        using var qrCode = new QRCode(qrData);
+        //        using Bitmap qrImage = qrCode.GetGraphic(8);
+
+        //        string fileName = $"{student.RollNo}_{student.RollCode}.png";
+        //        string filePath = Path.Combine(qrFolder, fileName);
+
+        //        qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+        //        filePaths.Add(filePath);
+        //    }
+
+        //    return Ok(new
+        //    {
+        //        message = "QR Generated Successfully",
+        //        count = filePaths.Count
+        //    });
+        //}
+
+        //[HttpGet("GenerateQRCodeWithCSV")] // save in CSV file multiple QR with CSV and ZIP Download this is my old code  jinal 3:15
+        //public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
+        //{
+        //    if (string.IsNullOrEmpty(rollno))
+        //        return BadRequest("RollNo required");
+
+        //    var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+        //    if (!rollCodes.Any())
+        //        return Content("No data found");
+
+        //    var csvRows = new List<string>
+        //        {
+        //            "RollNo,RollCode,EncryptedValue"
+        //        };
+
+        //    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    string qrFolder = Path.Combine(basePath, "qr");
+        //    string csvFolder = Path.Combine(basePath, "csv");
+        //    string zipFolder = Path.Combine(basePath, "zip");
+
+        //    Directory.CreateDirectory(qrFolder);
+        //    Directory.CreateDirectory(csvFolder);
+        //    Directory.CreateDirectory(zipFolder);
+
+        //    foreach (var rc in rollCodes)
+        //    {
+        //        var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+        //        if (student == null || student.Status != 1)
+        //            continue;
+
+        //        var json = JsonConvert.SerializeObject(student);
+        //        var jsondata = json;
+
+        //        var compressed = CompressionHelper.Compress(json);
+        //        var encrypted = EncryptionHelper.Encrypt(compressed);
+        //        // 🔹 Build full URL with encrypted data
+        //        string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}"; // test live url
+        //     //string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?enc={encrypted}"; // live url
+
+        //        // Generate QR
+        //        // Generate QR
+        //        using var generator = new QRCodeGenerator();
+        //        using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.Q);
+        //        using var qrCode = new QRCode(qrData);
+        //        using var bitmap = qrCode.GetGraphic(1); // ✅ Changed from 5 → 10 for Version 2 size
+
+        //        string qrFile = $"{rollno}_{rc}.png";
+        //        string qrPath = Path.Combine(qrFolder, qrFile);
+        //        bitmap.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
+
+        //        csvRows.Add($"{rollno},{rc},\"{qrPayload}\"");
+        //        //csvRows.Add($"{rollno},{rc},\"{encrypted}\"");
+        //    }
+
+        //    if (csvRows.Count == 1)
+        //        return Content("No valid result");
+
+        //    // Save CSV
+        //    string csvFile = $"qr_{rollno}.csv";
+        //    string csvPath = Path.Combine(csvFolder, csvFile);
+        //    System.IO.File.WriteAllLines(csvPath, csvRows);
+
+        //    // Create ZIP
+        //    string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
+        //    string zipPath = Path.Combine(zipFolder, zipFileName);
+
+        //    using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        //    {
+        //        foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
+        //            zip.CreateEntryFromFile(file, Path.GetFileName(file));
+
+        //        zip.CreateEntryFromFile(csvPath, csvFile);
+        //    }
+
+        //    byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+
+        //    return File(zipBytes, "application/zip", zipFileName);
+        //}
 
         //[HttpGet("GenerateQRCodeWithCSV")] // save in CSV file multiple QR with CSV and ZIP Download this is my old code 
         //public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
@@ -167,148 +466,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
         //    return File(zipBytes, "application/zip", zipFileName);
         //}
 
-        [HttpGet("GenerateQRCodeWithCSV")]
-        public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
-        {
-            if (string.IsNullOrEmpty(rollno))
-                return BadRequest("RollNo required");
-
-            var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
-            if (!rollCodes.Any())
-                return Content("No data found");
-
-            var csvRows = new List<string> { "RollNo,RollCode,EncryptedQRPayload" };
-
-            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            string qrFolder = Path.Combine(basePath, "qr");
-            string csvFolder = Path.Combine(basePath, "csv");
-            string zipFolder = Path.Combine(basePath, "zip");
-
-            Directory.CreateDirectory(qrFolder);
-            Directory.CreateDirectory(csvFolder);
-            Directory.CreateDirectory(zipFolder);
-
-            foreach (var rc in rollCodes)
-            {
-                var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
-                if (student == null || student.Status != 1)
-                    continue;
-
-                // ✅ STEP 1 — Use MINI DTO with short keys (saves ~50% JSON size)
-                var dto = StudentMiniDto.FromStudentResult(student);
-
-                var jsonSettings = new JsonSerializerSettings
-                {
-                    NullValueHandling = NullValueHandling.Ignore,
-                    DefaultValueHandling = DefaultValueHandling.Ignore
-                };
-                string json = JsonConvert.SerializeObject(dto, Formatting.None, jsonSettings);
-
-                // ✅ STEP 2 — GZip compress
-                byte[] compressed = CompressionHelper.Compress(json);
-
-                // ✅ STEP 3 — AES-256 encrypt
-                byte[] encrypted = EncryptionHelper.Encrypt(compressed);
-
-                // ✅ STEP 4 — Base64 encode for URL
-                string base64Payload = Convert.ToBase64String(encrypted);
-
-                // ✅ STEP 5 — Build QR string payload
-                // Use URL-safe Base64 (replace + / = to avoid URL encoding bloat)
-                string urlSafeBase64 = base64Payload
-                    .Replace("+", "-")
-                    .Replace("/", "_")
-                    .Replace("=", ""); // remove padding — saves extra chars
-
-                string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={urlSafeBase64}";
-
-                // ✅ STEP 6 — Log payload size so you can monitor
-                int payloadBytes = Encoding.UTF8.GetByteCount(qrPayload);
-                Console.WriteLine($"[QR] RollNo={rollno} RC={rc} PayloadSize={payloadBytes} bytes | JSON={json.Length} chars");
-
-                // ✅ STEP 7 — Generate QR
-                // ECCLevel.L = lowest error correction = MAXIMUM data capacity
-                // pixelsPerModule=5 on 400x400 = clean scannable QR even with large data
-                // ✅ STEP 7 — Generate QR at clean fixed size like reference image
-
-                // ✅ STEP 7 — High resolution QR, resized to 150x150 with sharp quality
-                using var generator = new QRCodeGenerator();
-                using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
-                using var qrCode = new QRCode(qrData);
-
-                // Generate at HIGH resolution first (10px per module = crisp)
-                using var bitmap = qrCode.GetGraphic(
-                    pixelsPerModule: 10,
-                    darkColor: Color.Black,
-                    lightColor: Color.White,
-                    drawQuietZones: true
-                );
-
-                // ✅ Resize to 150x150 using HIGH QUALITY interpolation (sharp, not blurry)
-                using var resized = new Bitmap(150, 150);
-                resized.SetResolution(300f, 300f); // 300 DPI = mobile scannable
-                using (var g = Graphics.FromImage(resized))
-                {
-                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-                    g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None; // keep edges sharp
-                    g.DrawImage(bitmap, 0, 0, 150, 150);
-                }
-
-                string qrFile = $"{rollno}{rc}.png";
-                string qrPath = Path.Combine(qrFolder, qrFile);
-                resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
-                //// ✅ STEP 7 — Generate QR at Version 1 size (small, compact) // workking 
-                //using var generator = new QRCodeGenerator();
-                //using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
-                //using var qrCode = new QRCode(qrData);
-
-                //using var bitmap = qrCode.GetGraphic(
-                //    pixelsPerModule: 3,        // ✅ 3px per module = small Version 1 size
-                //    darkColor: Color.Black,
-                //    lightColor: Color.White,
-                //    drawQuietZones: true
-                //);
-
-                //// ✅ Resize to 150x150 — Version 1 compact size
-                //using var resized = new Bitmap(bitmap, new Size(150, 150));
-                //resized.SetResolution(96f, 96f);
-
-                //string qrFile = $"{rollno}{rc}.png";
-                //string qrPath = Path.Combine(qrFolder, qrFile);
-                //resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
-
-                // Save at actual generated size (don't resize down — that blurs modules)
-                //string qrFile = $"{rollno}{rc}.png";
-                //string qrPath = Path.Combine(qrFolder, qrFile);
-                //bitmap.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
-
-                csvRows.Add($"{rollno},{rc},\"{base64Payload}\"");
-            }
-
-            if (csvRows.Count == 1)
-                return Content("No valid result");
-
-            string csvFile = $"qr{rollno}.csv";
-            string csvPath = Path.Combine(csvFolder, csvFile);
-            System.IO.File.WriteAllLines(csvPath, csvRows);
-
-            string zipFileName = $"QR_{rollno}{DateTime.Now:yyyyMMddHHmmss}.zip";
-            string zipPath = Path.Combine(zipFolder, zipFileName);
-
-            using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
-            {
-                foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}*.png"))
-                    zip.CreateEntryFromFile(file, Path.GetFileName(file));
-                zip.CreateEntryFromFile(csvPath, csvFile);
-            }
-
-            byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
-            return File(zipBytes, "application/zip", zipFileName);
-        }
-
-
-        //[HttpGet("GenerateQRCodeWithCSV")] // 25/03
+        //[HttpGet("GenerateQRCodeWithCSV")]
         //public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
         //{
         //    if (string.IsNullOrEmpty(rollno))
@@ -399,208 +557,227 @@ namespace BSEBExamResult_QRGenerate.Controllers
         //    return File(zipBytes, "application/zip", zipFileName);
         //}
 
-        //    [HttpGet("GenerateQRCodeWithCSV")] // save in CSV file as are requ QR small
-        //    public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
-        //    {
-        //        if (string.IsNullOrEmpty(rollno))
-        //            return BadRequest("RollNo required");
+        //[HttpGet("GenerateQRCodeWithCSV")] // save in CSV file as are requ QR small
+        //public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
+        //{
+        //    if (string.IsNullOrEmpty(rollno))
+        //        return BadRequest("RollNo required");
 
-        //        var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
-        //        if (!rollCodes.Any())
-        //            return Content("No data found");
+        //    var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+        //    if (!rollCodes.Any())
+        //        return Content("No data found");
 
-        //        var csvRows = new List<string>
+        //    var csvRows = new List<string>
         //{
         //    "RollNo,RollCode,EncryptedQRPayload"
         //};
 
-        //        string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        //        string qrFolder = Path.Combine(basePath, "qr");
-        //        string csvFolder = Path.Combine(basePath, "csv");
-        //        string zipFolder = Path.Combine(basePath, "zip");
+        //    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    string qrFolder = Path.Combine(basePath, "qr");
+        //    string csvFolder = Path.Combine(basePath, "csv");
+        //    string zipFolder = Path.Combine(basePath, "zip");
 
-        //        Directory.CreateDirectory(qrFolder);
-        //        Directory.CreateDirectory(csvFolder);
-        //        Directory.CreateDirectory(zipFolder);
+        //    Directory.CreateDirectory(qrFolder);
+        //    Directory.CreateDirectory(csvFolder);
+        //    Directory.CreateDirectory(zipFolder);
 
-        //        foreach (var rc in rollCodes)
+        //    foreach (var rc in rollCodes)
+        //    {
+        //        var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+        //        if (student == null || student.Status != 1)
+        //            continue;
+
+        //        // 🔹 Serialize, compress, and encrypt the student info + rc + rollno
+        //        var payloadObject = new
         //        {
-        //            var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
-        //            if (student == null || student.Status != 1)
-        //                continue;
+        //            RollNo = rollno,
+        //            RollCode = rc
+        //        };
+        //        var json = JsonConvert.SerializeObject(payloadObject);
+        //        var compressed = CompressionHelper.Compress(json);
+        //        var encrypted = EncryptionHelper.Encrypt(compressed);
 
-        //            // 🔹 Serialize, compress, and encrypt the student info + rc + rollno
-        //            var payloadObject = new
-        //            {
-        //                RollNo = rollno,
-        //                RollCode = rc
-        //            };
-        //            var json = JsonConvert.SerializeObject(payloadObject);
-        //            var compressed = CompressionHelper.Compress(json);
-        //            var encrypted = EncryptionHelper.Encrypt(compressed);
+        //        // 🔹 QR payload: only encrypted string
+        //        string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={Uri.EscapeDataString(encrypted)}";
 
-        //            // 🔹 QR payload: only encrypted string
-        //            string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={Uri.EscapeDataString(encrypted)}";
+        //        // 🔹 Generate QR — small, clean
+        //        using var generator = new QRCodeGenerator();
+        //        using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
+        //        using var qrCode = new QRCode(qrData);
 
-        //            // 🔹 Generate QR — small, clean
-        //            using var generator = new QRCodeGenerator();
-        //            using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
-        //            using var qrCode = new QRCode(qrData);
+        //        using var bitmap = qrCode.GetGraphic(3, Color.Black, Color.White, drawQuietZones: true);
+        //        using var resized = new Bitmap(bitmap, new Size(150, 150));
+        //        resized.SetResolution(150f, 150f);
 
-        //            using var bitmap = qrCode.GetGraphic(3, Color.Black, Color.White, drawQuietZones: true);
-        //            using var resized = new Bitmap(bitmap, new Size(150, 150));
-        //            resized.SetResolution(150f, 150f);
+        //        string qrFile = $"{rollno}_{rc}.png";
+        //        string qrPath = Path.Combine(qrFolder, qrFile);
+        //        resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
 
-        //            string qrFile = $"{rollno}_{rc}.png";
-        //            string qrPath = Path.Combine(qrFolder, qrFile);
-        //            resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
-
-        //            // 🔹 Save encrypted value in CSV
-        //            csvRows.Add($"{rollno},{rc},\"{encrypted}\"");
-        //        }
-
-        //        if (csvRows.Count == 1)
-        //            return Content("No valid result");
-
-        //        // 🔹 Save CSV
-        //        string csvFile = $"qr_{rollno}.csv";
-        //        string csvPath = Path.Combine(csvFolder, csvFile);
-        //        System.IO.File.WriteAllLines(csvPath, csvRows);
-
-        //        // 🔹 Create ZIP
-        //        string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
-        //        string zipPath = Path.Combine(zipFolder, zipFileName);
-
-        //        using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
-        //        {
-        //            foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
-        //                zip.CreateEntryFromFile(file, Path.GetFileName(file));
-
-        //            zip.CreateEntryFromFile(csvPath, csvFile);
-        //        }
-
-        //        byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
-        //        return File(zipBytes, "application/zip", zipFileName);
+        //        // 🔹 Save encrypted value in CSV
+        //        csvRows.Add($"{rollno},{rc},\"{encrypted}\"");
         //    }
 
+        //    if (csvRows.Count == 1)
+        //        return Content("No valid result");
 
+        //    // 🔹 Save CSV
+        //    string csvFile = $"qr_{rollno}.csv";
+        //    string csvPath = Path.Combine(csvFolder, csvFile);
+        //    System.IO.File.WriteAllLines(csvPath, csvRows);
 
-        //    [HttpGet("GenerateQRCodeWithCSV")] // save in CSV file
-        //    public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
+        //    // 🔹 Create ZIP
+        //    string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
+        //    string zipPath = Path.Combine(zipFolder, zipFileName);
+
+        //    using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
         //    {
-        //        if (string.IsNullOrEmpty(rollno))
-        //            return BadRequest("RollNo required");
+        //        foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
+        //            zip.CreateEntryFromFile(file, Path.GetFileName(file));
 
-        //        var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
-        //        if (!rollCodes.Any())
-        //            return Content("No data found");
+        //        zip.CreateEntryFromFile(csvPath, csvFile);
+        //    }
 
-        //        var csvRows = new List<string>
+        //    byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+        //    return File(zipBytes, "application/zip", zipFileName);
+        //}
+
+
+
+        //[HttpGet("GenerateQRCodeWithCSV")] // save in CSV file
+        //public async Task<IActionResult> GenerateQRCodeWithCSV(string rollno)
+        //{
+        //    if (string.IsNullOrEmpty(rollno))
+        //        return BadRequest("RollNo required");
+
+        //    var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+        //    if (!rollCodes.Any())
+        //        return Content("No data found");
+
+        //    var csvRows = new List<string>
         //{
         //    "RollNo,RollCode,QRPayload"
         //};
 
-        //        string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        //        string qrFolder = Path.Combine(basePath, "qr");
-        //        string csvFolder = Path.Combine(basePath, "csv");
-        //        string zipFolder = Path.Combine(basePath, "zip");
+        //    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    string qrFolder = Path.Combine(basePath, "qr");
+        //    string csvFolder = Path.Combine(basePath, "csv");
+        //    string zipFolder = Path.Combine(basePath, "zip");
 
-        //        Directory.CreateDirectory(qrFolder);
-        //        Directory.CreateDirectory(csvFolder);
-        //        Directory.CreateDirectory(zipFolder);
+        //    Directory.CreateDirectory(qrFolder);
+        //    Directory.CreateDirectory(csvFolder);
+        //    Directory.CreateDirectory(zipFolder);
 
-        //        foreach (var rc in rollCodes)
-        //        {
-        //            var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
-        //            if (student == null || student.Status != 1)
-        //                continue;
-
-        //            // ✅ SHORT URL ONLY — rc + rn keeps QR data minimal (~55 chars)
-        //            // interResult.aspx will fetch result from DB on scan using rc + rn
-        //            string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?rc={rc}&rn={rollno}";
-        //            // string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?rc={rc}&rn={rollno}";
-
-        //            // 🔹 Generate QR — short payload = very few modules = small clean QR
-        //            using var generator = new QRCodeGenerator();
-        //            using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
-        //            using var qrCode = new QRCode(qrData);
-
-        //            // 🔹 pixelsPerModule=3, short data = small QR like your reference image
-        //            using var bitmap = qrCode.GetGraphic(
-        //                3,
-        //                Color.Black,
-        //                Color.White,
-        //                drawQuietZones: true
-        //            );
-
-        //            // 🔹 300px at 300 DPI = exactly 1 inch when printed
-        //            using var resized = new Bitmap(bitmap, new Size(150, 150));
-        //            resized.SetResolution(150f, 150f);
-
-        //            string qrFile = $"{rollno}_{rc}.png";
-        //            string qrPath = Path.Combine(qrFolder, qrFile);
-        //            resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
-
-        //            // ✅ Save encrypted value separately in CSV for reference
-        //            var json = JsonConvert.SerializeObject(student);
-        //            var compressed = CompressionHelper.Compress(json);
-        //            var encrypted = EncryptionHelper.Encrypt(compressed);
-        //            csvRows.Add($"{rollno},{rc},\"{qrPayload}\",\"{encrypted}\"");
-        //        }
-
-        //        if (csvRows.Count == 1)
-        //            return Content("No valid result");
-
-        //        // 🔹 Save CSV
-        //        string csvFile = $"qr_{rollno}.csv";
-        //        string csvPath = Path.Combine(csvFolder, csvFile);
-        //        System.IO.File.WriteAllLines(csvPath, csvRows);
-
-        //        // 🔹 Create ZIP
-        //        string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
-        //        string zipPath = Path.Combine(zipFolder, zipFileName);
-
-        //        using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
-        //        {
-        //            foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
-        //                zip.CreateEntryFromFile(file, Path.GetFileName(file));
-
-        //            zip.CreateEntryFromFile(csvPath, csvFile);
-        //        }
-
-        //        byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
-        //        return File(zipBytes, "application/zip", zipFileName);
-        //    }
-
-
-
-
-
-
-        //[HttpPost("VerifyQRCode")] // only check encypt QR Data 
-        //public IActionResult VerifyQRCode([FromBody] QrRequest request)
-        //{
-        //    if (string.IsNullOrWhiteSpace(request.EncryptedValue))
-        //        return BadRequest("QR data is required");
-
-        //    try
+        //    foreach (var rc in rollCodes)
         //    {
-        //        // 🔐 STEP 1: DECRYPT FIRST
-        //        var decrypted = EncryptionHelper.Decrypt(request.EncryptedValue);
+        //        var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+        //        if (student == null || student.Status != 1)
+        //            continue;
 
-        //        // 📦 STEP 2: DECOMPRESS
-        //        var json = CompressionHelper.Decompress(decrypted);
+        //         ✅ SHORT URL ONLY — rc + rn keeps QR data minimal(~55 chars)
+        //         interResult.aspx will fetch result from DB on scan using rc +rn
+        //        string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?rc={rc}&rn={rollno}";
+        //        string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?rc={rc}&rn={rollno}";
 
-        //        // 🔁 STEP 3: DESERIALIZE
-        //        var student = JsonConvert.DeserializeObject<dynamic>(json);
+        //         🔹 Generate QR — short payload = very few modules = small clean QR
+        //        using var generator = new QRCodeGenerator();
+        //        using var qrData = generator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
+        //        using var qrCode = new QRCode(qrData);
 
-        //        return Ok(student); // or return View(student)
+        //         🔹 pixelsPerModule = 3, short data = small QR like your reference image
+        //        using var bitmap = qrCode.GetGraphic(
+        //            3,
+        //            Color.Black,
+        //            Color.White,
+        //            drawQuietZones: true
+        //        );
+
+        //         🔹 300px at 300 DPI = exactly 1 inch when printed
+        //        using var resized = new Bitmap(bitmap, new Size(150, 150));
+        //        resized.SetResolution(150f, 150f);
+
+        //        string qrFile = $"{rollno}_{rc}.png";
+        //        string qrPath = Path.Combine(qrFolder, qrFile);
+        //        resized.Save(qrPath, System.Drawing.Imaging.ImageFormat.Png);
+
+        //         ✅ Save encrypted value separately in CSV for reference
+        //        var json = JsonConvert.SerializeObject(student);
+        //        var compressed = CompressionHelper.Compress(json);
+        //        var encrypted = EncryptionHelper.Encrypt(compressed);
+        //        csvRows.Add($"{rollno},{rc},\"{qrPayload}\",\"{encrypted}\"");
         //    }
-        //    catch (Exception ex)
+
+        //    if (csvRows.Count == 1)
+        //        return Content("No valid result");
+
+        //     🔹 Save CSV
+        //    string csvFile = $"qr_{rollno}.csv";
+        //    string csvPath = Path.Combine(csvFolder, csvFile);
+        //    System.IO.File.WriteAllLines(csvPath, csvRows);
+
+        //     🔹 Create ZIP
+        //    string zipFileName = $"QR_{rollno}_{DateTime.Now:yyyyMMddHHmmss}.zip";
+        //    string zipPath = Path.Combine(zipFolder, zipFileName);
+
+        //    using (var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create))
         //    {
-        //        return BadRequest("Invalid or corrupted QR Code");
+        //        foreach (var file in Directory.GetFiles(qrFolder, $"{rollno}_*.png"))
+        //            zip.CreateEntryFromFile(file, Path.GetFileName(file));
+
+        //        zip.CreateEntryFromFile(csvPath, csvFile);
         //    }
+
+        //    byte[] zipBytes = await System.IO.File.ReadAllBytesAsync(zipPath);
+        //    return File(zipBytes, "application/zip", zipFileName);
         //}
+
+        [HttpGet("DecryptStudent")]
+        public IActionResult DecryptStudent(string enc)
+        {
+            if (string.IsNullOrEmpty(enc))
+                return BadRequest("Encrypted value required");
+
+            try
+            {
+                var student = QrDecryptUtility.DecodeToStudent(enc);
+
+                if (student == null)
+                    return BadRequest(new { success = false, message = "Invalid data" });
+
+                return Ok(new { success = true, data = student });
+            }
+            catch
+            {
+                return BadRequest(new { success = false, message = "Failed to decrypt QR" });
+            }
+        }
+
+
+
+
+        [HttpPost("VerifyQRCode")] // only check encypt QR Data 
+        public IActionResult VerifyQRCode([FromBody] QrRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.EncryptedValue))
+                return BadRequest("QR data is required");
+
+            try
+            {
+                // 🔐 STEP 1: DECRYPT FIRST
+                var decrypted = EncryptionHelper.Decrypt(request.EncryptedValue);
+
+                // 📦 STEP 2: DECOMPRESS
+                var json = CompressionHelper.Decompress(decrypted);
+
+                // 🔁 STEP 3: DESERIALIZE
+                var student = JsonConvert.DeserializeObject<dynamic>(json);
+
+                return Ok(student); // or return View(student)
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Invalid or corrupted QR Code");
+            }
+        }
 
 
 
