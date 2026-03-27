@@ -1,0 +1,76 @@
+[
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "GenerateQrEncrypt",
+    "RelativePath": "api/QRGenerate/generate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "BSEBExamResult_QRGenerate.Model.QrRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "GenerateQRCodeWithCSV",
+    "RelativePath": "api/QRGenerate/GenerateQRCodeWithCSV",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "rollno",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "GenerateSingleQRCode",
+    "RelativePath": "api/QRGenerate/GenerateSingleQRCode",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "rollcode",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "rollno",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.WeatherForecastController",
+    "Method": "Get",
+    "RelativePath": "WeatherForecast",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[BSEBExamResult_QRGenerate.WeatherForecast, BSEBExamResult_QRGenerate, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ],
+    "EndpointName": "GetWeatherForecast"
+  }
+]
