@@ -19,6 +19,7 @@ namespace BSEBExamResult_QRGenerate.Model
         public string? TotalAggregateMarkinNumber { get; set; }
         public string? TotalAggregateMarkinWords { get; set; }
         public string? Division { get; set; }
+        //public bool? IsCCEMarks { get; set; }
 
         public List<SubjectResult> SubjectResults { get; set; } = new();
     }
