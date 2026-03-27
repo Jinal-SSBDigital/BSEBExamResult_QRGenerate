@@ -29,7 +29,9 @@ namespace BSEBExamResult_QRGenerate.Data
                     await conn.OpenAsync();
 
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"SELECT DISTINCT TOP 10 RollCode  FROM [BSEB-RESULT-2025].[dbo].[EXAM_FinalPublishedResult]  WHERE RollNumber = @rollno";
+                cmd.CommandText = @" SELECT DISTINCT TOP 20 RollCode FROM [InterExam2026].[dbo].[EXAM_FinalPublishedResult]   WHERE IsActive = 1 AND RollNumber = @rollno ORDER BY RollCode ASC";
+                //cmd.CommandText = @" SELECT DISTINCT TOP 20 RollCode FROM [InterExam2026].[dbo].[EXAM_FinalPublishedResult]   WHERE IsActive = 1 AND RollNumber = @rollno ORDER BY RollCode ASC";
+                //cmd.CommandText = @"SELECT DISTINCT TOP 10 RollCode  FROM [BSEB-RESULT-2025].[dbo].[EXAM_FinalPublishedResult]  WHERE RollNumber = @rollno";
 
                 cmd.Parameters.Add(new SqlParameter("@rollno", rollno));
 
@@ -49,7 +51,7 @@ namespace BSEBExamResult_QRGenerate.Data
 
         }
 
-        // 🔹 Get student + subject result
+        // 🔹 Get student + subject result for multiple qr generate 
         public async Task<StudentResult?> GetStudentResultAsync(string rollcode, string rollno)
         {
             try
@@ -60,7 +62,8 @@ namespace BSEBExamResult_QRGenerate.Data
 
                 using var cmd = conn.CreateCommand();
                 //cmd.CommandText = "LoginSp";
-                cmd.CommandText = "MultipleQR";
+                //cmd.CommandText = "MultipleQR"; // db BSEB-RESULT-2025
+                cmd.CommandText = "LoginSp"; // db InterExam2026
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new SqlParameter("@rollcode", rollcode));
@@ -74,6 +77,7 @@ namespace BSEBExamResult_QRGenerate.Data
                 var student = new StudentResult
                 {
                     Status = reader.GetInt32(reader.GetOrdinal("status")),
+                    IsCCEMarks = reader.GetInt32(reader.GetOrdinal("IsCCEMarks")),
                     RollCode = reader["rollcode"].ToString(),
                     RollNo = reader["rollno"].ToString(),
                     BsebUniqueID = reader["BsebUniqueID"].ToString(),
@@ -87,6 +91,7 @@ namespace BSEBExamResult_QRGenerate.Data
                     TotalAggregateMarkinNumber = reader["TotalAggregateMarkinNumber"].ToString(),
                     TotalAggregateMarkinWords = reader["TotalAggregateMarkinWords"].ToString(),
                     Division = reader["DIVISION"].ToString()
+                  
                 };
 
                 while (await reader.NextResultAsync())
