@@ -34,7 +34,7 @@ namespace BSEBExamResult_QRGenerate.Model
                 Faculty = s.Faculty,
                 TotalMarks = s.TotalAggregateMarkinNumber,
                 Division = s.Division,
-                DOB = s.dob?.ToString("dd/MM/yyyy"),
+                //DOB = s.dob?.ToString("dd/MM/yyyy"),
                 IsCCE = (int)s.IsCCEMarks,
                 Subjects = s.SubjectResults?.Select(r => new SubMini
                 {

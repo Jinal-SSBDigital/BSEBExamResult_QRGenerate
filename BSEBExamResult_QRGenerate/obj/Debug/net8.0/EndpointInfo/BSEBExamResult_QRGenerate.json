@@ -5,6 +5,39 @@
     "version": "1.0"
   },
   "paths": {
+    "/api/QRGenerate/GenerateAndSaveAllEncrypted": {
+      "post": {
+        "tags": [
+          "QRGenerate"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/QRGenerate/GenerateQRCodeOptimized": {
+      "get": {
+        "tags": [
+          "QRGenerate"
+        ],
+        "parameters": [
+          {
+            "name": "rollno",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/QRGenerate/GenerateSingleQRCode": {
       "get": {
         "tags": [
@@ -47,6 +80,58 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/QRGenerate/DecryptStudent": {
+      "get": {
+        "tags": [
+          "QRGenerate"
+        ],
+        "parameters": [
+          {
+            "name": "enc",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/QRGenerate/VerifyQRCode": {
+      "post": {
+        "tags": [
+          "QRGenerate"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QrRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QrRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/QrRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"

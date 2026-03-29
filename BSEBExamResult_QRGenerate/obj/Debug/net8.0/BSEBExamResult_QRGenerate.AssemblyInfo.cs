@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BSEBExamResult_QRGenerate")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e74d1a123fd2477ca2c74752697dfc2d432e43a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b9d196a9ff4a3683074420894611951bda5e4473")]
 [assembly: System.Reflection.AssemblyProductAttribute("BSEBExamResult_QRGenerate")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BSEBExamResult_QRGenerate")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

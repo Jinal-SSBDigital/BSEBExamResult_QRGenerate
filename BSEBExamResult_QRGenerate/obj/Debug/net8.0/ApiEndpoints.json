@@ -1,6 +1,22 @@
 [
   {
     "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "DecryptStudent",
+    "RelativePath": "api/QRGenerate/DecryptStudent",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "enc",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
     "Method": "GenerateQrEncrypt",
     "RelativePath": "api/QRGenerate/generate",
     "HttpMethod": "POST",
@@ -11,6 +27,32 @@
         "Name": "request",
         "Type": "BSEBExamResult_QRGenerate.Model.QrRequest",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "GenerateAndSaveAllEncrypted",
+    "RelativePath": "api/QRGenerate/GenerateAndSaveAllEncrypted",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "GenerateQRCodeOptimized",
+    "RelativePath": "api/QRGenerate/GenerateQRCodeOptimized",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "rollno",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -48,6 +90,22 @@
         "Name": "rollno",
         "Type": "System.String",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "BSEBExamResult_QRGenerate.Controllers.QRGenerateController",
+    "Method": "VerifyQRCode",
+    "RelativePath": "api/QRGenerate/VerifyQRCode",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "BSEBExamResult_QRGenerate.Model.QrRequest",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
