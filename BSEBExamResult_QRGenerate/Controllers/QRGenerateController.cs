@@ -2,6 +2,7 @@
 using BSEBExamResult_QRGenerate.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using QRCoder;
@@ -16,12 +17,193 @@ namespace BSEBExamResult_QRGenerate.Controllers
     public class QRGenerateController : ControllerBase
     {
         private readonly DbHelper _dbHelper;
+        private readonly ILogger<QRGenerateController> _logger;
 
-        public QRGenerateController(AppDBContext context)
+        public QRGenerateController(AppDBContext context, ILogger<QRGenerateController> logger)
         {
             _dbHelper = new DbHelper(context);
+            _logger = logger;
         }
 
+
+        // ✅ Bulk encrypt ALL students and save to DB
+        [HttpPost("GenerateAndSaveAllEncrypted")]
+        public async Task<IActionResult> GenerateAndSaveAllEncrypted()
+        {
+            _logger.LogInformation("Bulk QR Encryption started at {Time}", DateTime.Now);
+
+            // Step 1: Get all RollCode + RollNo pairs directly from table
+            var allRolls = await _dbHelper.GetAllRollCodesAsync();
+            _logger.LogInformation("Total students fetched: {Count}", allRolls.Count);
+
+            int successCount = 0;
+            int failCount = 0;
+            int skippedCount = 0;
+
+            const int BATCH_SIZE = 5000;
+            var batch = new List<QREncryptedData>(BATCH_SIZE);
+
+            foreach (var (rollCode, rollNo) in allRolls)
+            {
+                try
+                {
+                    // Step 2: Get full student data via LoginSp
+                    var student = await _dbHelper.GetStudentResultAsync(rollCode, rollNo);
+
+                    if (student == null || student.Status != 1)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Step 3: Encrypt full student object
+                    string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
+                    var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
+
+                    if (qrPath == null)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // ✅ Only valid records go to DB
+                    batch.Add(new QREncryptedData
+                    {
+                        RollCode = rollCode,
+                        RollNo = rollNo,
+                        EncryptedData = encrypted,
+                        QrPath = qrPath,
+                        CreatedOn = DateTime.Now
+                    });
+
+                    successCount++;
+
+                    // Step 5: Flush batch to DB every 5000 records
+                    if (batch.Count >= BATCH_SIZE)
+                    {
+                        await _dbHelper.BulkSaveEncryptedDataAsync(batch);
+                        _logger.LogInformation("Flushed batch. Total saved so far: {Count}", successCount);
+                        batch.Clear();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    _logger.LogError(ex, "Failed for RollCode: {RC}, RollNo: {RN}", rollCode, rollNo);
+                }
+            }
+
+            // Step 6: Save any remaining records
+            if (batch.Count > 0)
+            {
+                await _dbHelper.BulkSaveEncryptedDataAsync(batch);
+                batch.Clear();
+            }
+
+            _logger.LogInformation(
+                "Done. Success: {S}, Failed: {F}, Skipped: {SK}",
+                successCount, failCount, skippedCount);
+
+            return Ok(new
+            {
+                message = "Bulk encryption complete",
+                total = allRolls.Count,
+                success = successCount,
+                failed = failCount,
+                skipped = skippedCount
+            });
+        }
+
+        private string GenerateQrImage(string encrypted, string rollNo, string rollCode)
+        {
+            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            string qrFolder = Path.Combine(basePath, "qr");
+
+            Directory.CreateDirectory(qrFolder);
+
+            //string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
+            string qrPayload = encrypted;
+
+            if (qrPayload.Length > 2000)
+                return null;
+
+            using var qrGenerator = new QRCodeGenerator();
+            //var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
+            var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
+
+
+            using var qrCode = new QRCode(qrData);
+            using Bitmap qrImage = qrCode.GetGraphic(1);
+            //using Bitmap qrImage = qrCode.GetGraphic(2);
+
+            string fileName = $"{rollNo}_{rollCode}.png";
+            string filePath = Path.Combine(qrFolder, fileName);
+
+            qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+            return filePath;
+        }
+
+
+
+
+        [HttpGet("GenerateQRCodeOptimized")]
+        public async Task<IActionResult> GenerateQRCodeOptimized(string rollno)
+        {
+            if (string.IsNullOrEmpty(rollno))
+                return BadRequest("RollNo required");
+
+            var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
+            if (!rollCodes.Any())
+                return Content("No data found");
+
+            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            string qrFolder = Path.Combine(basePath, "qr");
+
+            Directory.CreateDirectory(qrFolder);
+
+            var filePaths = new List<string>();
+
+            foreach (var rc in rollCodes)
+            {
+                var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
+
+                if (student == null || student.Status != 1)
+                    continue;
+
+                // 🔐 Encrypted payload
+                //string encrypted = QrUtility.GenerateEncryptedPayload(student);
+                string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
+
+                // 🔗 URL inside QR
+                string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
+
+                // ⚠️ Length check
+                if (qrPayload.Length > 2000)
+                    continue;
+
+                using var qrGenerator = new QRCodeGenerator();
+                var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
+
+                using var qrCode = new QRCode(qrData);
+                using Bitmap qrImage = qrCode.GetGraphic(2);
+
+                string fileName = $"{student.RollNo}_{student.RollCode}.png";
+                string filePath = Path.Combine(qrFolder, fileName);
+
+                qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+                filePaths.Add(filePath);
+            }
+
+            return Ok(new
+            {
+                message = "QR Generated Successfully",
+                count = filePaths.Count
+            });
+        }
+
+        // below code is old
         [HttpGet("GenerateSingleQRCode")]// old single QR 
         public async Task<IActionResult> GenerateSingleQRCode(string rollcode, string rollno)
         {
@@ -117,7 +299,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
             {
                 var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
                 if (student == null || student.Status != 1)
-                //if (student == null || student.Status != 1)
+                    //if (student == null || student.Status != 1)
                     continue;
 
                 //var modified = new
@@ -160,7 +342,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
                 var encrypted = EncryptionHelper.Encrypt(compressed);
                 // 🔹 Build full URL with encrypted data
                 string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}"; // test live url
-             //string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?enc={encrypted}"; // live url
+                                                                                                //string qrPayload = $"https://interresult-25.biharboardexam.com/interResult.aspx?enc={encrypted}"; // live url
 
                 // Generate QR
                 // Generate QR
@@ -202,60 +384,6 @@ namespace BSEBExamResult_QRGenerate.Controllers
             return File(zipBytes, "application/zip", zipFileName);
         }
 
-        [HttpGet("GenerateQRCodeOptimized")]
-        public async Task<IActionResult> GenerateQRCodeOptimized(string rollno)
-        {
-            if (string.IsNullOrEmpty(rollno))
-                return BadRequest("RollNo required");
-
-            var rollCodes = await _dbHelper.GetRollCodesByRollNoAsync(rollno);
-            if (!rollCodes.Any())
-                return Content("No data found");
-
-            string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            string qrFolder = Path.Combine(basePath, "qr");
-
-            Directory.CreateDirectory(qrFolder);
-
-            var filePaths = new List<string>();
-
-            foreach (var rc in rollCodes)
-            {
-                var student = await _dbHelper.GetStudentResultAsync(rc, rollno);
-
-                if (student == null || student.Status != 1)
-                    continue;
-
-                // 🔐 Encrypted payload
-                //string encrypted = QrUtility.GenerateEncryptedPayload(student);
-                string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
-                // 🔗 URL inside QR
-                string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
-
-                // ⚠️ Length check
-                if (qrPayload.Length > 2000)
-                    continue;
-
-                using var qrGenerator = new QRCodeGenerator();
-                var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
-
-                using var qrCode = new QRCode(qrData);
-                using Bitmap qrImage = qrCode.GetGraphic(2);
-
-                string fileName = $"{student.RollNo}_{student.RollCode}.png";
-                string filePath = Path.Combine(qrFolder, fileName);
-
-                qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
-
-                filePaths.Add(filePath);
-            }
-
-            return Ok(new
-            {
-                message = "QR Generated Successfully",
-                count = filePaths.Count
-            });
-        }
         //[HttpGet("GenerateQRCodeOptimized")]
         //public async Task<IActionResult> GenerateQRCodeOptimized(string rollno)
         //{
