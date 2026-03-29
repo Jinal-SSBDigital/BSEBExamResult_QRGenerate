@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using System.Security.Cryptography.Xml;
 
 namespace BSEBExamResult_QRGenerate.Data
 {
@@ -18,6 +19,64 @@ namespace BSEBExamResult_QRGenerate.Data
 
         //new
         // 🔹 Get ALL rollcodes by rollno
+
+        // ✅ NEW: Get ALL RollCode + RollNo pairs (up to 13 lakh students)
+        public async Task<List<(string RollCode, string RollNo)>> GetAllRollCodesAsync()
+        {
+            var result = new List<(string, string)>();
+            var conn = _context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "GetAllRollCodesForQR"; // ← your new SP
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandTimeout = 300; // 5 min timeout for large data
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add((
+                    reader["RollCode"].ToString()!,
+                    reader["RollNo"].ToString()!
+                ));
+            }
+
+            return result;
+        }
+        // ✅ Bulk insert encrypted data using SqlBulkCopy
+        // ✅ Bulk insert encrypted data using SqlBulkCopy
+        public async Task BulkSaveEncryptedDataAsync(List<QREncryptedData> records)
+        {
+            var conn = _context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            var sqlConn = (SqlConnection)conn;
+
+            var dt = new DataTable();
+            dt.Columns.Add("RollCode", typeof(string));
+            dt.Columns.Add("RollNo", typeof(string));
+            dt.Columns.Add("EncryptedData", typeof(string));
+            dt.Columns.Add("QrPath", typeof(string));
+
+            foreach (var r in records)
+                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.QrPath);
+
+            using var bulk = new SqlBulkCopy(sqlConn)
+            {
+                DestinationTableName = "[InterExam2026].[dbo].[EXAM_QREncryptedData]",
+                BatchSize = 1000,
+                BulkCopyTimeout = 600
+            };
+
+            bulk.ColumnMappings.Add("RollCode", "RollCode");
+            bulk.ColumnMappings.Add("RollNo", "RollNo");
+            bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
+            bulk.ColumnMappings.Add("QrPath", "QrPath"); 
+
+            await bulk.WriteToServerAsync(dt);
+        }
         public async Task<List<string>> GetRollCodesByRollNoAsync(string rollno)
         {
             try
@@ -29,7 +88,8 @@ namespace BSEBExamResult_QRGenerate.Data
                     await conn.OpenAsync();
 
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = @" SELECT DISTINCT TOP 20 RollCode FROM [InterExam2026].[dbo].[EXAM_FinalPublishedResult]   WHERE IsActive = 1 AND RollNumber = @rollno ORDER BY RollCode ASC";
+
+                cmd.CommandText = @" SELECT DISTINCT TOP 25 RollCode FROM [InterExam2026].[dbo].[EXAM_FinalPublishedResult]   WHERE IsActive = 1 AND RollNumber = @rollno ORDER BY RollCode desc";
                 //cmd.CommandText = @" SELECT DISTINCT TOP 20 RollCode FROM [InterExam2026].[dbo].[EXAM_FinalPublishedResult]   WHERE IsActive = 1 AND RollNumber = @rollno ORDER BY RollCode ASC";
                 //cmd.CommandText = @"SELECT DISTINCT TOP 10 RollCode  FROM [BSEB-RESULT-2025].[dbo].[EXAM_FinalPublishedResult]  WHERE RollNumber = @rollno";
 
@@ -175,5 +235,29 @@ namespace BSEBExamResult_QRGenerate.Data
 
         }
 
+        public async Task SaveQrDataAsync(string shortId, string encryptedValue)
+        {
+            var conn = _context.Database.GetDbConnection();
+
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"INSERT INTO QrData (ShortId, EncryptedValue)
+                        VALUES (@ShortId, @EncryptedValue)";
+
+            var param1 = cmd.CreateParameter();
+            param1.ParameterName = "@ShortId";
+            param1.Value = shortId;
+
+            var param2 = cmd.CreateParameter();
+            param2.ParameterName = "@EncryptedValue";
+            param2.Value = encryptedValue;
+
+            cmd.Parameters.Add(param1);
+            cmd.Parameters.Add(param2);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }
