@@ -57,7 +57,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     }
 
                     // Step 3: Encrypt full student object
-                    string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
+                  //  string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
+                    string encrypted = QrUtility.GenerateEncryptedPayloadCompact(student);
                     var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
 
                     if (qrPath == null)
