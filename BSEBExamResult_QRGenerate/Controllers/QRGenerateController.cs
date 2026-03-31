@@ -59,8 +59,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     // Step 3: Encrypt full student object
                   //  string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
                     string encrypted = QrUtility.GenerateEncryptedPayloadCompact(student);
-                   // var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
-
+                    // var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
+                    int encryptedLength = encrypted.Length;
                     //if (qrPath == null)
                     //{
                     //    skippedCount++;
@@ -73,7 +73,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
                         RollCode = rollCode,
                         RollNo = rollNo,
                         EncryptedData = encrypted,
-                       // QrPath = "",
+                        Length = encryptedLength,
+                        // QrPath = "",
                         CreatedOn = DateTime.Now
                     });
 

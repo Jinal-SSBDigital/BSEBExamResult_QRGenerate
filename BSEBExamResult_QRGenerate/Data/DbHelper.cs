@@ -58,7 +58,7 @@ namespace BSEBExamResult_QRGenerate.Data
             dt.Columns.Add("RollCode", typeof(string));
             dt.Columns.Add("RollNo", typeof(string));
             dt.Columns.Add("EncryptedData", typeof(string));
-            //dt.Columns.Add("QrPath", typeof(string));
+            dt.Columns.Add("CharLength", typeof(int));
 
             foreach (var r in records)
                 dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData);
@@ -73,7 +73,7 @@ namespace BSEBExamResult_QRGenerate.Data
             bulk.ColumnMappings.Add("RollCode", "RollCode");
             bulk.ColumnMappings.Add("RollNo", "RollNo");
             bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
-           // bulk.ColumnMappings.Add("QrPath", "QrPath"); 
+            bulk.ColumnMappings.Add("CharLength", "CharLength"); 
 
             await bulk.WriteToServerAsync(dt);
         }
@@ -123,7 +123,7 @@ namespace BSEBExamResult_QRGenerate.Data
                 using var cmd = conn.CreateCommand();
                 //cmd.CommandText = "LoginSp";
                 //cmd.CommandText = "MultipleQR"; // db BSEB-RESULT-2025
-                cmd.CommandText = "LoginSp"; // db InterExam2026
+                cmd.CommandText = "sp_finalresultforqr"; // db InterExam2026
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add(new SqlParameter("@rollcode", rollcode));

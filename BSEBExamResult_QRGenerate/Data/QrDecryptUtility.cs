@@ -78,7 +78,8 @@ namespace BSEBExamResult_QRGenerate.Data
         // 🔓 Full pipeline: decode QR string to compact pipe-separated string
         public static string DecodeToCompactString(string enc)
         {
-            byte[] encryptedBytes = Base45Decode(enc);
+           // byte[] encryptedBytes = Base45Decode(enc);
+            byte[] encryptedBytes = Base85Decode(enc);
             byte[] decryptedBytes = Decrypt(encryptedBytes);
             byte[] plainBytes = Decompress(decryptedBytes);
             return Encoding.UTF8.GetString(plainBytes);
@@ -135,6 +136,59 @@ namespace BSEBExamResult_QRGenerate.Data
         }
 
 
+        // ── Base85 decode ─────────────────────────────────────────────────────────────
+        public static byte[] Base85Decode(string input)
+        {
+            const string B85 =
+                "0123456789" +
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+                "abcdefghijklmnopqrstuvwxyz" +
+                "!#$%&()*+-;<=>?@^_`{|}~";
+
+            var result = new List<byte>(input.Length * 4 / 5 + 4);
+            int i = 0;
+
+            while (i < input.Length)
+            {
+                int rem = input.Length - i;
+
+                if (rem >= 5)   // full group: 5 chars → 4 bytes
+                {
+                    uint n = 0;
+                    for (int j = 0; j < 5; j++)
+                        n = n * 85 + (uint)B85.IndexOf(input[i + j]);
+
+                    result.Add((byte)(n >> 24));
+                    result.Add((byte)(n >> 16));
+                    result.Add((byte)(n >> 8));
+                    result.Add((byte)n);
+                    i += 5;
+                }
+                else             // partial tail: rem chars → rem-1 bytes
+                {
+                    uint n = 0;
+                    uint mult = 1;
+                    for (int j = rem - 1; j >= 0; j--) mult *= 85;
+                    mult /= 85;   // highest power used
+
+                    uint div = mult;
+                    for (int j = 0; j < rem; j++)
+                    {
+                        n += (uint)B85.IndexOf(input[i + j]) * div;
+                        div /= 85;
+                    }
+
+                    // Shift back to big-endian top bytes
+                    n <<= (4 - (rem - 1)) * 8;
+                    for (int b = 0; b < rem - 1; b++)
+                        result.Add((byte)(n >> (24 - b * 8)));
+
+                    i += rem;
+                }
+            }
+
+            return result.ToArray();
+        }
 
         //// 🔓 AES Decrypt
         //public static byte[] Decrypt(byte[] encryptedData)
