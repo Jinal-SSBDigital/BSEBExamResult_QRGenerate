@@ -98,9 +98,10 @@ namespace BSEBExamResult_QRGenerate.Data
                     .Append(string.IsNullOrEmpty(sub.Theory) || sub.Theory == "0" ? "" : sub.Theory).Append(",")           // Theory marks
       .Append(string.IsNullOrEmpty(sub.OB_PR) || sub.OB_PR == "0" ? "" : sub.OB_PR).Append(",")             // Practical marks
       .Append(string.IsNullOrEmpty(sub.GRC_THO) || sub.GRC_THO == "0" ? "" : sub.GRC_THO).Append(",")       // Grace theory
-      .Append(string.IsNullOrEmpty(sub.GRC_PR) || sub.GRC_PR == "0" ? "" : sub.GRC_PR).Append(",")         // Grace practical
-     // .Append(sub.TotSub?.Replace("|", "") == "0" ? "" : sub.TotSub?.Replace("|", "")).Append(",")          // Total marks
-      .Append(sub.CCEMarks?.Replace("|", "") == "0" ? "" : sub.CCEMarks?.Replace("|", ""));
+      .Append(string.IsNullOrEmpty(sub.GRC_PR) || sub.GRC_PR == "0" ? "" : sub.GRC_PR).Append(",")
+       .Append(sub.CCEMarks?.Replace("|", "") == "0" ? "" : sub.CCEMarks?.Replace("|", "")).Append(",")// Grace practical
+      .Append(sub.TotSub?.Replace("|", "") == "0" ? "" : sub.TotSub?.Replace("|", ""));       // Total marks
+     
             }
 
             var payloadString = sb.ToString();

@@ -61,7 +61,7 @@ namespace BSEBExamResult_QRGenerate.Data
             dt.Columns.Add("CharLength", typeof(int));
 
             foreach (var r in records)
-                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData);
+                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData,r.Length);
 
             using var bulk = new SqlBulkCopy(sqlConn)
             {

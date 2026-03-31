@@ -93,6 +93,7 @@ namespace BSEBExamResult_QRGenerate.Data
         }
 
         // 🔓 Parse pipe-separated compact string to StudentResult
+
         private static StudentResult ParseCompactStringToStudent(string compact)
         {
             var parts = compact.Split('|');
@@ -104,36 +105,105 @@ namespace BSEBExamResult_QRGenerate.Data
                 BsebUniqueID = parts[2],
                 NameoftheCandidate = parts[3],
                 FathersName = parts[4],
-                CollegeName = parts[5],
-                RegistrationNo = parts[6],
-                Faculty = parts[7],
-                TotalAggregateMarkinNumber = parts[8],
-                Division = parts[9],
+                CollegeName = "", // Not included in encryption
+                RegistrationNo = parts[5],
+                Faculty = ReverseFacultyMap(parts[6]), // Convert short code back to full name
+                TotalAggregateMarkinNumber = parts[7],
+                Division = parts[8],
                 SubjectResults = new List<SubjectResult>()
             };
 
-            // Subjects start from index 10
-            for (int i = 10; i < parts.Length; i++)
+            // Subjects start from index 9
+            for (int i = 9; i < parts.Length; i++)
             {
                 var subParts = parts[i].Split(',');
-                if (subParts.Length >= 8)
+
+                if (subParts.Length >= 9) // There are 9 fields per subject
                 {
                     student.SubjectResults.Add(new SubjectResult
                     {
-                        SubjectGroupName = subParts[0],
+                        SubjectGroupName = ReverseGroupMap(subParts[0]), // optional
                         Sub = subParts[1],
-                        Theory = subParts[2],
-                        OB_PR = subParts[3],
-                        GRC_THO = subParts[4],
-                        GRC_PR = subParts[5],
-                        TotSub = subParts[6],
-                        CCEMarks = subParts[7]
+                        PassMark = string.IsNullOrEmpty(subParts[2]) ? (int?)null : int.Parse(subParts[2]),
+                        Theory = subParts[3],
+                        OB_PR = subParts[4],
+                        GRC_THO = subParts[5],
+                        GRC_PR = subParts[6],
+                        CCEMarks = subParts[7],
+                        TotSub = subParts[8]
                     });
                 }
             }
 
             return student;
         }
+
+        // Optional: reverse the faculty short code
+        private static string ReverseFacultyMap(string code)
+        {
+            return code switch
+            {
+                "A" => "ARTS",
+                "S" => "SCIENCE",
+                "C" => "COMMERCE",
+                "V" => "VOCATIONAL",
+                _ => ""
+            };
+        }
+
+        // Optional: reverse subject group mapping
+        private static string ReverseGroupMap(string id)
+        {
+            return id switch
+            {
+                "1" => "1. अनिवार्य Compulsory",
+                "2" => "2. ऐच्छिक Elective",
+                "3" => "3. अतिरिक्त Additional",
+                "4" => "4. Additional subject group Vocational (100 marks)",
+                _ => ""
+            };
+        }
+        //private static StudentResult ParseCompactStringToStudent(string compact)
+        //{
+        //    var parts = compact.Split('|');
+
+        //    var student = new StudentResult
+        //    {
+        //        RollCode = parts[0],
+        //        RollNo = parts[1],
+        //        BsebUniqueID = parts[2],
+        //        NameoftheCandidate = parts[3],
+        //        FathersName = parts[4],
+        //        CollegeName = parts[5],
+        //        RegistrationNo = parts[6],
+        //        Faculty = parts[7],
+        //        TotalAggregateMarkinNumber = parts[8],
+        //        Division = parts[9],
+        //        SubjectResults = new List<SubjectResult>()
+        //    };
+
+        //    // Subjects start from index 10
+        //    for (int i = 10; i < parts.Length; i++)
+        //    {
+        //        var subParts = parts[i].Split(',');
+        //        if (subParts.Length >= 8)
+        //        {
+        //            student.SubjectResults.Add(new SubjectResult
+        //            {
+        //                SubjectGroupName = subParts[0],
+        //                Sub = subParts[1],
+        //                Theory = subParts[2],
+        //                OB_PR = subParts[3],
+        //                GRC_THO = subParts[4],
+        //                GRC_PR = subParts[5],
+        //                TotSub = subParts[6],
+        //                CCEMarks = subParts[7]
+        //            });
+        //        }
+        //    }
+
+        //    return student;
+        //}
 
 
         // ── Base85 decode ─────────────────────────────────────────────────────────────
