@@ -6,7 +6,7 @@
         public string RollCode { get; set; }
         public string RollNo { get; set; }
         public string EncryptedData { get; set; }
-        public string QrPath { get; set; }
+        //public string QrPath { get; set; }
         public DateTime CreatedOn { get; set; }
     }
 }

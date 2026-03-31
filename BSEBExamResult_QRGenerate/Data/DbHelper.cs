@@ -58,10 +58,10 @@ namespace BSEBExamResult_QRGenerate.Data
             dt.Columns.Add("RollCode", typeof(string));
             dt.Columns.Add("RollNo", typeof(string));
             dt.Columns.Add("EncryptedData", typeof(string));
-            dt.Columns.Add("QrPath", typeof(string));
+            //dt.Columns.Add("QrPath", typeof(string));
 
             foreach (var r in records)
-                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.QrPath);
+                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData);
 
             using var bulk = new SqlBulkCopy(sqlConn)
             {
@@ -73,7 +73,7 @@ namespace BSEBExamResult_QRGenerate.Data
             bulk.ColumnMappings.Add("RollCode", "RollCode");
             bulk.ColumnMappings.Add("RollNo", "RollNo");
             bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
-            bulk.ColumnMappings.Add("QrPath", "QrPath"); 
+           // bulk.ColumnMappings.Add("QrPath", "QrPath"); 
 
             await bulk.WriteToServerAsync(dt);
         }

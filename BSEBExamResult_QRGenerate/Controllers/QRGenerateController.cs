@@ -59,13 +59,13 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     // Step 3: Encrypt full student object
                   //  string encrypted = QrUtility.GenerateEncryptedPayloadFull(student);
                     string encrypted = QrUtility.GenerateEncryptedPayloadCompact(student);
-                    var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
+                   // var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
 
-                    if (qrPath == null)
-                    {
-                        skippedCount++;
-                        continue;
-                    }
+                    //if (qrPath == null)
+                    //{
+                    //    skippedCount++;
+                    //    continue;
+                    //}
 
                     // ✅ Only valid records go to DB
                     batch.Add(new QREncryptedData
@@ -73,7 +73,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
                         RollCode = rollCode,
                         RollNo = rollNo,
                         EncryptedData = encrypted,
-                        QrPath = qrPath,
+                       // QrPath = "",
                         CreatedOn = DateTime.Now
                     });
 
@@ -115,6 +115,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
             });
         }
 
+
         private string GenerateQrImage(string encrypted, string rollNo, string rollCode)
         {
             string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
@@ -122,28 +123,72 @@ namespace BSEBExamResult_QRGenerate.Controllers
 
             Directory.CreateDirectory(qrFolder);
 
-            //string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
             string qrPayload = encrypted;
 
             if (qrPayload.Length > 2000)
                 return null;
 
             using var qrGenerator = new QRCodeGenerator();
-            //var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
             var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
 
+            // Set dimension to 100 px
+            int targetPixels = 100;
+
+            int moduleCount = qrData.ModuleMatrix.Count;
+            int pixelsPerModule = Math.Max(1, targetPixels / moduleCount);
 
             using var qrCode = new QRCode(qrData);
-            using Bitmap qrImage = qrCode.GetGraphic(1);
-            //using Bitmap qrImage = qrCode.GetGraphic(2);
+            using Bitmap qrImage = qrCode.GetGraphic(pixelsPerModule);
+
+            // Force exact 100x100 size
+            using Bitmap finalImage = new Bitmap(targetPixels, targetPixels);
+            finalImage.SetResolution(300, 300);
+
+            using (Graphics g = Graphics.FromImage(finalImage))
+            {
+                g.Clear(Color.White);
+                g.DrawImage(qrImage, 0, 0, targetPixels, targetPixels);
+            }
 
             string fileName = $"{rollNo}_{rollCode}.png";
             string filePath = Path.Combine(qrFolder, fileName);
 
-            qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+            finalImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
 
             return filePath;
         }
+
+
+        //working code
+        //private string GenerateQrImage(string encrypted, string rollNo, string rollCode)
+        //{
+        //    string basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    string qrFolder = Path.Combine(basePath, "qr");
+
+        //    Directory.CreateDirectory(qrFolder);
+
+        //    //string qrPayload = $"http://115.243.18.52/t1/interResult.aspx?enc={encrypted}";
+        //    string qrPayload = encrypted;
+
+        //    if (qrPayload.Length > 2000)
+        //        return null;
+
+        //    using var qrGenerator = new QRCodeGenerator();
+        //    //var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.M);
+        //    var qrData = qrGenerator.CreateQrCode(qrPayload, QRCodeGenerator.ECCLevel.L);
+
+
+        //    using var qrCode = new QRCode(qrData);
+        //    using Bitmap qrImage = qrCode.GetGraphic(2);
+        //    //using Bitmap qrImage = qrCode.GetGraphic(2);
+
+        //    string fileName = $"{rollNo}_{rollCode}.png";
+        //    string filePath = Path.Combine(qrFolder, fileName);
+
+        //    qrImage.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+
+        //    return filePath;
+        //}
 
 
 
