@@ -41,8 +41,22 @@ namespace BSEBExamResult_QRGenerate.Data
             sb.Append(student.RollCode).Append("|");
             sb.Append(student.RollNo).Append("|");
             sb.Append(student.BsebUniqueID).Append("|");
-            sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
-            sb.Append(student.FathersName?.Replace("|", "")).Append("|");
+//            sb.Append(
+//    string.Join(" ", student.NameoftheCandidate?
+//        .Replace("|", "") // remove pipe characters
+//        .Split(' ', StringSplitOptions.RemoveEmptyEntries) // split by space
+//        .Take(2) // take first 2 words
+//    )
+//).Append("|");
+              sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
+//            sb.Append(
+//    string.Join(" ", student.FathersName?
+//        .Replace("|", "")       // remove pipe characters
+//        .Split(' ', StringSplitOptions.RemoveEmptyEntries)  // split by space
+//        .Take(2)                // take first 2 words
+//    )
+//).Append("|");
+             sb.Append(student.FathersName?.Replace("|", "")).Append("|");
             //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
             sb.Append(student.RegistrationNo).Append("|");
 
