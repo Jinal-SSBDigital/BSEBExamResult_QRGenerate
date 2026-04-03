@@ -81,12 +81,12 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     successCount++;
 
                     // Step 5: Flush batch to DB every 5000 records
-                    if (batch.Count >= BATCH_SIZE)
-                    {
-                        await _dbHelper.BulkSaveEncryptedDataAsync(batch);
-                        _logger.LogInformation("Flushed batch. Total saved so far: {Count}", successCount);
-                        batch.Clear();
-                    }
+                    //if (batch.Count >= BATCH_SIZE)
+                    //{
+                    //    await _dbHelper.BulkSaveEncryptedDataAsync(batch);
+                    //    _logger.LogInformation("Flushed batch. Total saved so far: {Count}", successCount);
+                    //    batch.Clear();
+                    //}
                 }
                 catch (Exception ex)
                 {
@@ -96,11 +96,11 @@ namespace BSEBExamResult_QRGenerate.Controllers
             }
 
             // Step 6: Save any remaining records
-            if (batch.Count > 0)
-            {
-                await _dbHelper.BulkSaveEncryptedDataAsync(batch);
-                batch.Clear();
-            }
+            //if (batch.Count > 0)
+            //{
+            //    await _dbHelper.BulkSaveEncryptedDataAsync(batch);
+            //    batch.Clear();
+            //}
 
             _logger.LogInformation(
                 "Done. Success: {S}, Failed: {F}, Skipped: {SK}",
@@ -112,7 +112,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
                 total = allRolls.Count,
                 success = successCount,
                 failed = failCount,
-                skipped = skippedCount
+                skipped = skippedCount,
+                data = batch   // 👈 THIS IS WHAT YOU NEED
             });
         }
 
