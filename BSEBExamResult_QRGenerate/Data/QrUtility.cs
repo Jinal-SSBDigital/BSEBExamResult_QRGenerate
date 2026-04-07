@@ -56,13 +56,13 @@ namespace BSEBExamResult_QRGenerate.Data
             if (words != null && words.Length > 0)
             {
                 // If exactly 2 words, take only 1; otherwise, take up to 2
-                // var takeCount = (words.Length == 2) ? 1 : Math.Min(2, words.Length);
+                 //var takeCount = (words.Length == 2) ? 1 : Math.Min(2, words.Length);
                 var takeCount = Math.Max(0, words.Length - 2);
 
                 sb.Append(string.Join(" ", words.Take(takeCount)))
                   .Append("|");
             }
-            //sb.Append(student.FathersName?.Replace("|", "")).Append("|");
+            // sb.Append(student.FathersName?.Replace("|", "")).Append("|");
             //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
             sb.Append(student.RegistrationNo).Append("|");
 
