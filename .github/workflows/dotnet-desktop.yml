@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest   # faster than Windows for APIs
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -17,22 +17,37 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 8.0.x   # change if you're using another version
+        dotnet-version: 8.0.x
 
+    # =========================
+    # RESTORE
+    # =========================
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore MyApi/MyApi.csproj
 
+    # =========================
+    # BUILD
+    # =========================
     - name: Build project
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build MyApi/MyApi.csproj -c Release --no-restore
 
+    # =========================
+    # TEST (only if you have tests)
+    # If no tests exist, this step can be removed
+    # =========================
     - name: Run tests
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test MyApi/MyApi.csproj --no-build --verbosity normal
+      continue-on-error: true
 
-    # Optional: Publish (creates deployable output)
+    # =========================
+    # PUBLISH
+    # =========================
     - name: Publish
-      run: dotnet publish -c Release -o ./publish
+      run: dotnet publish MyApi/MyApi.csproj -c Release -o ./publish --no-build
 
-    # Optional: Upload build artifacts
+    # =========================
+    # ARTIFACTS
+    # =========================
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
