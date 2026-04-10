@@ -23,32 +23,31 @@ jobs:
     # RESTORE
     # =========================
     - name: Restore dependencies
-      run: dotnet restore MyApi/MyApi.csproj
+      run: dotnet restore BSEBExamResult_QRGenerate/BSEBExamResult_QRGenerate.csproj
 
     # =========================
     # BUILD
     # =========================
     - name: Build project
-      run: dotnet build MyApi/MyApi.csproj -c Release --no-restore
+      run: dotnet build BSEBExamResult_QRGenerate/BSEBExamResult_QRGenerate.csproj -c Release --no-restore
 
     # =========================
-    # TEST (only if you have tests)
-    # If no tests exist, this step can be removed
+    # TEST (optional)
     # =========================
     - name: Run tests
-      run: dotnet test MyApi/MyApi.csproj --no-build --verbosity normal
+      run: dotnet test BSEBExamResult_QRGenerate/BSEBExamResult_QRGenerate.csproj --no-build --verbosity normal
       continue-on-error: true
 
     # =========================
     # PUBLISH
     # =========================
     - name: Publish
-      run: dotnet publish MyApi/MyApi.csproj -c Release -o ./publish --no-build
+      run: dotnet publish BSEBExamResult_QRGenerate/BSEBExamResult_QRGenerate.csproj -c Release -o ./publish --no-build
 
     # =========================
-    # ARTIFACTS
+    # ARTIFACT
     # =========================
-    - name: Upload artifacts
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: api-build
