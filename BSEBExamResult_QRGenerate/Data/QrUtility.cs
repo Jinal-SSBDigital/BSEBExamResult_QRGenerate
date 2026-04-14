@@ -154,8 +154,11 @@ namespace BSEBExamResult_QRGenerate.Data
 
 
 
-        // ── Base85 encode (RFC 1924 variant) ─────────────────────────────────────
-        // 4 bytes → 5 chars  (1.25× expansion vs Base45's 1.5×)
+        // ── Base85 encode (RFC 1924 variant) ───────────────────────────────────── 
+        // 4 bytes → 5 chars  (1.25× expansion vs Base45's 1.5×) 
+        // jinal code
+
+        #region Jinal
         public static string Base85Encode(byte[] data)
         {
             var sb = new StringBuilder(data.Length * 5 / 4 + 5);
@@ -200,11 +203,7 @@ namespace BSEBExamResult_QRGenerate.Data
 
             return sb.ToString();
         }
-
-
-
-
-
+     
 
         public static string GenerateEncryptedPayloadFull(Model.StudentResult student)
         {
@@ -242,7 +241,7 @@ namespace BSEBExamResult_QRGenerate.Data
             return output.ToArray();
         }
 
-
+        #endregion
         //public static string GenerateEncryptedPayload(Model.StudentResult student)
         //{
         //    var compact = CreateCompactData(student);
@@ -321,7 +320,142 @@ namespace BSEBExamResult_QRGenerate.Data
         // 🔹 Step 4: Base45 Encode
         private const string Charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
+        #region Jinal
+        public static string EncryptPlainText(string plainText, string encryptKey)
+        {
+            // Convert key
+            var keyBytes = Encoding.UTF8.GetBytes(encryptKey);
 
+            // Convert plain text to bytes
+            var plainBytes = Encoding.UTF8.GetBytes(plainText);
+
+            // Compress
+            var compressed = Compress(plainBytes);
+
+            // Encrypt using dynamic key
+            var encrypted = EncryptTextData(compressed, keyBytes);
+
+            // Base85 encode
+            return Base85Encode(encrypted);
+        }
+        public static byte[] EncryptTextData(byte[] data, byte[] dynamicKey)
+        {
+            using var aes = Aes.Create();
+
+            aes.KeySize = 256;
+            aes.BlockSize = 128;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            aes.Key = dynamicKey;
+
+            // Generate random IV
+            aes.GenerateIV();
+            byte[] iv = aes.IV;
+
+            using var encryptor = aes.CreateEncryptor(aes.Key, iv);
+            using var ms = new MemoryStream();
+
+            // prepend IV
+            ms.Write(iv, 0, iv.Length);
+
+            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+            {
+                cs.Write(data, 0, data.Length);
+                cs.FlushFinalBlock();
+            }
+
+            return ms.ToArray();
+        }
+        public static string DecryptPayload(string encryptedText, string key)
+        {
+            // 🔹 Convert key
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+
+            // 🔹 Base85 Decode
+            var encryptedBytes = Base85Decode(encryptedText);
+
+            // 🔹 AES Decrypt
+            var decryptedBytes = Decrypt(encryptedBytes, keyBytes);
+
+            // 🔹 Decompress
+            var decompressedBytes = Decompress(decryptedBytes);
+
+            // 🔹 Convert to string
+            return Encoding.UTF8.GetString(decompressedBytes);
+        }
+
+        // this below code for Plaintext decoding without key (for testing)
+        public static byte[] Base85Decode(string input)
+        {
+            var output = new List<byte>();
+
+            int[] map = new int[128];
+            for (int i = 0; i < B85.Length; i++)
+                map[B85[i]] = i;
+
+            int iIndex = 0;
+            while (iIndex < input.Length)
+            {
+                int chunkSize = Math.Min(5, input.Length - iIndex);
+                uint value = 0;
+
+                for (int i = 0; i < chunkSize; i++)
+                {
+                    value = value * 85 + (uint)map[input[iIndex + i]];
+                }
+
+                int byteCount = chunkSize - 1;
+
+                for (int i = byteCount - 1; i >= 0; i--)
+                {
+                    output.Add((byte)(value >> (8 * i)));
+                }
+
+                iIndex += chunkSize;
+            }
+
+            return output.ToArray();
+        }
+
+        public static byte[] Decrypt(byte[] encryptedData, byte[] key)
+        {
+            using var aes = Aes.Create();
+
+            aes.KeySize = 256;
+            aes.BlockSize = 128;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+
+            aes.Key = key;
+
+            // 🔹 Extract IV (first 16 bytes)
+            byte[] iv = new byte[16];
+            Array.Copy(encryptedData, 0, iv, 0, 16);
+
+            aes.IV = iv;
+
+            using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+
+            using var ms = new MemoryStream(encryptedData, 16, encryptedData.Length - 16);
+            using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+            using var result = new MemoryStream();
+
+            cs.CopyTo(result);
+
+            return result.ToArray();
+        }
+
+        public static byte[] Decompress(byte[] data)
+        {
+            using var input = new MemoryStream(data);
+            using var gzip = new GZipStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+
+            gzip.CopyTo(output);
+
+            return output.ToArray();
+        }
         private static string Base45Encode(byte[] data)
         {
             var sb = new StringBuilder();
@@ -345,7 +479,7 @@ namespace BSEBExamResult_QRGenerate.Data
 
             return sb.ToString();
         }
-
+        #endregion
 
         //jinal code
 
