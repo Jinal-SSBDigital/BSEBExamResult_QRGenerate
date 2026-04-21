@@ -259,5 +259,78 @@ namespace BSEBExamResult_QRGenerate.Data
 
             await cmd.ExecuteNonQueryAsync();
         }
+
+        public async Task<List<(string RollCode, string RollNo)>> Provisional_RollCodesForQR()
+        {
+            var result = new List<(string, string)>();
+            var conn = _context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "sp_GetProvisionalRollCodesForQR"; // ← your new SP
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandTimeout = 300; // 5 min timeout for large data
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add((
+                    reader["RollCode"].ToString()!,
+                    reader["RollNo"].ToString()!
+                ));
+            }
+
+            return result;
+        }
+
+        public async Task BulkSaveProvisionalEXAMQREncData(List<ProvisionalEXAMQREncdData> records)
+        {
+            if (records == null || records.Count == 0)
+                return;
+
+            var conn = (SqlConnection)_context.Database.GetDbConnection();
+
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var transaction = conn.BeginTransaction();
+
+            try
+            {
+                var dt = new DataTable();
+                dt.Columns.Add("RollCode", typeof(string));
+                dt.Columns.Add("RollNo", typeof(string));
+                dt.Columns.Add("EncryptedData", typeof(string));
+                dt.Columns.Add("QRLength", typeof(int));
+
+                foreach (var r in records)
+                {
+                    dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.QRLength);
+                }
+
+                using var bulk = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, transaction)
+                {
+                    DestinationTableName = "[InterExam2026].[dbo].[Provisional_EXAMQREncdData]",
+                    BatchSize = 2000,
+                    BulkCopyTimeout = 600,
+                    EnableStreaming = true
+                };
+
+                bulk.ColumnMappings.Add("RollCode", "RollCode");
+                bulk.ColumnMappings.Add("RollNo", "RollNo");
+                bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
+                bulk.ColumnMappings.Add("QRLength", "QRLength");
+
+                await bulk.WriteToServerAsync(dt);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
     }
 }
