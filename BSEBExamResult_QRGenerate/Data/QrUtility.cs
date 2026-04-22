@@ -175,7 +175,7 @@ namespace BSEBExamResult_QRGenerate.Data
             sb.Append(student.FathersName?.Replace("|", "")).Append("|");
             //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
             sb.Append(student.RegistrationNo).Append("|");
-            sb.Append(student.CollegeName).Append("|");
+            //sb.Append(student.CollegeName).Append("|");
 
             // 🔹 Map Faculty full name to single character
             var facultyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
