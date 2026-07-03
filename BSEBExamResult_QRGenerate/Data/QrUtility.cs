@@ -158,7 +158,7 @@ namespace BSEBExamResult_QRGenerate.Data
         // 4 bytes → 5 chars  (1.25× expansion vs Base45's 1.5×) 
         // jinal code
 
-        #region Jinal
+        #region Jinal Nagar
 
         public static string GenerateProvisionalEncryptedPayload(Model.StudentResult student)
         {
@@ -321,6 +321,122 @@ namespace BSEBExamResult_QRGenerate.Data
             return output.ToArray();
         }
 
+
+
+        public static string CompartQRGenerateEncryptedPayload(Model.CompartStudentResult student)
+        {
+            // 🔹 Step 1: Create compact string (pipe-separated)
+            // Exclude dob, status, msg
+            var sb = new StringBuilder();
+
+            sb.Append(student.RollCode).Append("|");
+            sb.Append(student.RollNo).Append("|");
+            sb.Append(student.BsebUniqueID).Append("|");
+            //            sb.Append(
+            //    string.Join(" ", student.NameoftheCandidate?
+            //        .Replace("|", "") // remove pipe characters
+            //        .Split(' ', StringSplitOptions.RemoveEmptyEntries) // split by space
+            //        .Take(2) // take first 2 words
+            //    )
+            //).Append("|");
+            sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
+            //        var words = student.FathersName?
+            //.Replace("|", "")
+            //.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            //        if (words != null && words.Length > 0)
+            //        {
+            //            // If exactly 2 words, take only 1; otherwise, take up to 2
+            //             //var takeCount = (words.Length == 2) ? 1 : Math.Min(2, words.Length);
+            //            var takeCount = Math.Max(0, words.Length - 2);
+
+            //            sb.Append(string.Join(" ", words.Take(takeCount)))
+            //              .Append("|");
+            //        }
+            sb.Append(student.FathersName?.Replace("|", "")).Append("|");
+            //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
+            sb.Append(student.RegistrationNo).Append("|");
+
+            // 🔹 Map Faculty full name to single character
+            var facultyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    { "ARTS", "A" },
+    { "SCIENCE", "S" },
+    { "COMMERCE", "C" },
+    { "VOCATIONAL", "V" }
+};
+
+            // 🔹 Get the short code
+            string facultyCode = student.Faculty != null && facultyMap.ContainsKey(student.Faculty)
+                ? facultyMap[student.Faculty]
+                : ""; // fallback if faculty is null or unknown
+
+            // 🔹 Append to your compact string
+            sb.Append(facultyCode).Append("|");
+            // sb.Append(student.Faculty?.Replace("|", "")).Append("|");
+            sb.Append(student.TotalAggregateMarkinNumber.Replace("|", "")).Append("|");
+            //sb.Append(student.TotalAggregateMarkinWords?.Replace("|", "")).Append("|");
+            sb.Append(student.Division?.Replace("|", ""));
+
+            // 🔹 Define a mapping for subject groups
+            var groupMap = new Dictionary<string, string>
+    {
+        {"1. अनिवार्य Compulsory", "1"},
+        {"2. ऐच्छिक Elective", "2"},
+        {"3. अतिरिक्त Additional", "3"},
+        {"4. Additional subject group Vocational (100 marks)", "4"}
+    };
+
+            // 🔹 Add subjects compactly (all 4 groups)
+            // 🔹 Add subjects compactly (all groups)
+            foreach (var sub in student.SubjectResults)
+            {
+                var groupId = groupMap.ContainsKey(sub.SubjectGroupName) ? groupMap[sub.SubjectGroupName] : "0";
+
+                sb.Append("|")
+                  .Append(groupId).Append(",")                        // Subject group ID
+                  .Append(sub.Sub?.Replace("|", "")).Append(",")      // Subject name
+                                                                      //.Append(sub.Theory).Append(",")                     // Theory marks
+                                                                      //.Append(sub.OB_PR).Append(",")                      // Practical marks
+                                                                      //.Append(sub.GRC_THO).Append(",")                    // Grace theory
+                                                                      //.Append(sub.GRC_PR).Append(",")                     // Grace practical
+                                                                      //.Append(sub.TotSub?.Replace("|", "")).Append(",")   // Total marks
+                                                                      //.Append(sub.CCEMarks?.Replace("|", ""));           // CCE marks
+
+
+
+                  .Append((sub.PassMark.HasValue && sub.PassMark.Value != 0) ? sub.PassMark.Value.ToString() : "").Append(",")   // Pass marks
+                    .Append(string.IsNullOrEmpty(sub.Theory) || sub.Theory == "0" ? "" : sub.Theory).Append(",")           // Theory marks
+      .Append(string.IsNullOrEmpty(sub.OB_PR) || sub.OB_PR == "0" ? "" : sub.OB_PR).Append(",")             // Practical marks
+      .Append(string.IsNullOrEmpty(sub.GRC_THO) || sub.GRC_THO == "0" ? "" : sub.GRC_THO).Append(",")       // Grace theory
+      .Append(string.IsNullOrEmpty(sub.GRC_PR) || sub.GRC_PR == "0" ? "" : sub.GRC_PR).Append(",")
+       .Append(sub.CCEMarks?.Replace("|", "") == "0" ? "" : sub.CCEMarks?.Replace("|", "")).Append(",")// Grace practical
+      .Append(sub.TotSub?.Replace("|", "") == "0" ? "" : sub.TotSub?.Replace("|", ""));       // Total marks
+
+            }
+
+            var payloadString = sb.ToString();
+
+            // 🔹 Remove any leading/trailing braces
+            payloadString = payloadString.Trim('{', '}');
+
+            // 🔹 Convert to bytes
+            var bytes = Encoding.UTF8.GetBytes(payloadString);
+
+
+
+            // 🔹 Compress
+            var compressed = Compress(bytes);
+
+            // 🔹 Encrypt
+            var encrypted = Encrypt(compressed);
+
+            // var encryptedwithoutkey = EncryptWithoutKey(encrypted);
+
+            // 🔹 Base45 encode for QR
+            // return Base45Encode(encrypted);
+            return Base85Encode(encrypted);
+        }
         #endregion
         //public static string GenerateEncryptedPayload(Model.StudentResult student)
         //{

@@ -9,6 +9,7 @@ namespace BSEBExamResult_QRGenerate.Data
 {
     public class DbHelper
     {
+        #region Jinal Nagar
         private readonly AppDBContext _context;
 
         public DbHelper(AppDBContext context)
@@ -112,6 +113,115 @@ namespace BSEBExamResult_QRGenerate.Data
         }
 
         // 🔹 Get student + subject result for multiple qr generate 
+        public async Task<CompartStudentResult?> GetCompartStudentResultAsync(string rollcode, string rollno)
+        {
+            try
+            {
+                var conn = _context.Database.GetDbConnection();
+                if (conn.State != ConnectionState.Open)
+                    await conn.OpenAsync();
+
+                using var cmd = conn.CreateCommand();
+                //cmd.CommandText = "LoginSp";
+                //cmd.CommandText = "MultipleQR"; // db BSEB-RESULT-2025
+                cmd.CommandText = "sp_finalresultforqr"; // db InterExam2026
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.Add(new SqlParameter("@rollcode", rollcode));
+                cmd.Parameters.Add(new SqlParameter("@rollno", rollno));
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (!await reader.ReadAsync())
+                    return null;
+
+                var student = new CompartStudentResult
+                {
+                    Status = reader.GetInt32(reader.GetOrdinal("status")),
+                    IsCCEMarks = reader.GetInt32(reader.GetOrdinal("IsCCEMarks")),
+                    RollCode = reader["rollcode"].ToString(),
+                    RollNo = reader["rollno"].ToString(),
+                    BsebUniqueID = reader["BsebUniqueID"].ToString(),
+                    msg = reader["msg"].ToString(),
+                    dob = DateTime.TryParse(reader["dob"]?.ToString(), out var d) ? d : null,
+                    NameoftheCandidate = reader["NameoftheCandidate"].ToString(),
+                    FathersName = reader["FathersName"].ToString(),
+                    CollegeName = reader["CollegeName"].ToString(),
+                    RegistrationNo = reader["RegistrationNo"].ToString(),
+                    Faculty = reader["FACULTY"].ToString(),
+                    TotalAggregateMarkinNumber = reader["TotalAggregateMarkinNumber"].ToString(),
+                    TotalAggregateMarkinWords = reader["TotalAggregateMarkinWords"].ToString(),
+                    Division = reader["DIVISION"].ToString(),
+                    ExamType = reader["ExamType"]?.ToString()
+
+                };
+
+                while (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        student.SubjectResults.Add(new SubjectResult
+                        {
+                            Sub = reader["Sub"]?.ToString(),
+                            MaxMark = reader.IsDBNull("maxMark") ? null : reader.GetInt32("maxMark"),
+                            PassMark = reader.IsDBNull("passMark") ? null : reader.GetInt32("passMark"),
+                            Theory = reader["theory"]?.ToString(),
+                            OB_PR = reader["OB_PR"]?.ToString(),
+                            GRC_THO = reader["GRC_THO"]?.ToString(),
+                            GRC_PR = reader["GRC_PR"]?.ToString(),
+                            CCEMarks = reader["CCEMarks"]?.ToString(),
+                            //CCEMarks = reader.IsDBNull("CCEMarks") ? null : reader.GetInt32("CCEMarks"),
+                            TotSub = reader["TOT_SUB"]?.ToString(),
+                            SubjectGroupName = reader["SubjectGroupName"]?.ToString()
+                        });
+                    }
+                }
+
+                return student;
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+
+        }
+        public async Task BulkSaveCompartEncryptedDataAsync(List<EXAM_QRComprtEncryptedData> records)
+        {
+            if (records == null || records.Count == 0)
+                return;
+
+            var conn = (SqlConnection)_context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            var dt = new DataTable();
+            dt.Columns.Add("RollCode", typeof(string));
+            dt.Columns.Add("RollNo", typeof(string));
+            dt.Columns.Add("EncryptedData", typeof(string));
+            dt.Columns.Add("Length", typeof(string)); // Length column in DB is nvarchar(max)
+
+            foreach (var r in records)
+                dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.Length.ToString());
+
+            using var bulk = new SqlBulkCopy(conn)
+            {
+                DestinationTableName = "[InterCompartSpecial2026].[dbo].[EXAM_QRComprtEncryptedData]",
+                BatchSize = 1000,
+                BulkCopyTimeout = 600
+            };
+
+            bulk.ColumnMappings.Add("RollCode", "RollCode");
+            bulk.ColumnMappings.Add("RollNo", "RollNo");
+            bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
+            bulk.ColumnMappings.Add("Length", "Length");
+            // CreatedOn and Id are intentionally NOT mapped:
+            // - Id is IDENTITY, SqlBulkCopy skips it automatically
+            // - CreatedOn will be NULL unless you also map it (see note below)
+
+            await bulk.WriteToServerAsync(dt);
+        }
+
         public async Task<StudentResult?> GetStudentResultAsync(string rollcode, string rollno)
         {
             try
@@ -333,4 +443,5 @@ namespace BSEBExamResult_QRGenerate.Data
             }
         }
     }
+        #endregion
 }
