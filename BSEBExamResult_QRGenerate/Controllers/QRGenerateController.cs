@@ -15,7 +15,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class QRGenerateController : ControllerBase
-    {
+    { 
+        #region Jinal Nagar
         private readonly DbHelper _dbHelper;
         private readonly ILogger<QRGenerateController> _logger;
 
@@ -212,7 +213,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
         }
 
 
-
+        #endregion
 
         //[HttpPost("generate")] //Encrypt Text and Generate QR
         //public IActionResult GenerateQrEncrypt([FromBody] QrRequest request)

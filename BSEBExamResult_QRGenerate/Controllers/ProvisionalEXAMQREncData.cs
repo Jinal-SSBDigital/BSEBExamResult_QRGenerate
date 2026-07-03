@@ -9,6 +9,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
     [ApiController]
     public class ProvisionalEXAMQREncData : ControllerBase
     {
+        #region Jinal Nagar
         private readonly DbHelper _dbHelper;
         private readonly ILogger<ProvisionalEXAMQREncData> _logger;
 
@@ -117,4 +118,5 @@ namespace BSEBExamResult_QRGenerate.Controllers
             });
         }
     }
+        #endregion
 }
