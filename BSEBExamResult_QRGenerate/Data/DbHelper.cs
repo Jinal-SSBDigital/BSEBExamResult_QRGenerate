@@ -475,6 +475,7 @@ namespace BSEBExamResult_QRGenerate.Data
                     EnableStreaming = true
                 };
 
+                //bulk.ColumnMappings.Add("Id", "Id");
                 bulk.ColumnMappings.Add("RollCode", "RollCode");
                 bulk.ColumnMappings.Add("RollNo", "RollNo");
                 bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");

@@ -6,8 +6,8 @@ namespace BSEBExamResult_QRGenerate.Model
     [Table("Provisional_EXAMQREncdData")]
     public class ProvisionalEXAMQREncdData
     {
-       // [Key]
-       // public int Id { get; set; } // Add if table has PK (recommended)
+        [Key]
+        public int Id { get; set; } // Add if table has PK (recommended)
 
         public string RollCode { get; set; }
 
