@@ -200,7 +200,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
            // Step 6: Save any remaining records
             if (batch.Count > 0)
             {
-                await _dbHelper.BulkSaveProvisionalEXAMQREncData(batch);
+                await _dbHelper.BulkSaveCompartProvisionalEXAMQREncData(batch);
                 batch.Clear();
             }
 
