@@ -442,6 +442,54 @@ namespace BSEBExamResult_QRGenerate.Data
                 throw;
             }
         }
+        public async Task BulkSaveCompartProvisionalEXAMQREncData(List<ProvisionalEXAMQREncdData> records)
+        {
+            if (records == null || records.Count == 0)
+                return;
+
+            var conn = (SqlConnection)_context.Database.GetDbConnection();
+
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var transaction = conn.BeginTransaction();
+
+            try
+            {
+                var dt = new DataTable();
+                dt.Columns.Add("RollCode", typeof(string));
+                dt.Columns.Add("RollNo", typeof(string));
+                dt.Columns.Add("EncryptedData", typeof(string));
+                dt.Columns.Add("QRLength", typeof(int));
+
+                foreach (var r in records)
+                {
+                    dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.QRLength);
+                }
+
+                using var bulk = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, transaction)
+                {
+                    DestinationTableName = "[InterCompartSpecial2026].[dbo].[ProvisionalEXAMQREncdData]",
+                    BatchSize = 2000,
+                    BulkCopyTimeout = 600,
+                    EnableStreaming = true
+                };
+
+                bulk.ColumnMappings.Add("RollCode", "RollCode");
+                bulk.ColumnMappings.Add("RollNo", "RollNo");
+                bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
+                bulk.ColumnMappings.Add("QRLength", "QRLength");
+
+                await bulk.WriteToServerAsync(dt);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
     }
         #endregion
 }
