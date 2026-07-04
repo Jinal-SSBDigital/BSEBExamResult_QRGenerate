@@ -50,7 +50,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
 
                     string encrypted = string.Equals(student.ExamType, "COMPARTMENTAL", StringComparison.OrdinalIgnoreCase)
                         ? "2C" + QrUtility.CompartQRGenerateEncryptedPayload(student)
-                        : "S" + QrUtility.CompartQRGenerateEncryptedPayload(student);
+                        : "2S" + QrUtility.CompartQRGenerateEncryptedPayload(student);
 
                     int encryptedLength = encrypted.Length;
 
