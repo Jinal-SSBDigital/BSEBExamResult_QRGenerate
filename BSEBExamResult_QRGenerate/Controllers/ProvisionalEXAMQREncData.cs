@@ -219,6 +219,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
             });
         }
 
-    }
         #endregion
+    }
+
 }
