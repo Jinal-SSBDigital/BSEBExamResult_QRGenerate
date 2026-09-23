@@ -13,12 +13,11 @@ namespace BSEBExamResult_QRGenerate.Controllers
         private readonly DbHelper _dbHelper;
         private readonly ILogger<Annual_Original> _logger;
 
-        public Annual_Original(AppDBContext context, ILogger<Annual_Original> logger)
+        public Annual_Original(AppDBContext context, IConfiguration config, ILogger<Annual_Original> logger)
         {
-            _dbHelper = new DbHelper(context);
+            _dbHelper = new DbHelper(context, config);
             _logger = logger;
         }
-
         // ✅ Bulk encrypt ALL students and save to DB
         [HttpPost("GenerateAnnualOriginalEXAMQREncData")]
         public async Task<IActionResult> GenerateAnnualOriginalEXAMQREncData()
