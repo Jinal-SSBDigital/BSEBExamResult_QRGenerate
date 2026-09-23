@@ -160,6 +160,161 @@ namespace BSEBExamResult_QRGenerate.Data
 
         #region Jinal Nagar
 
+        public static string GenerateAnnualOriginalEncryptedPayload(Model.CertificateStudentResult student)
+        {
+            // 🔹 Step 1: Create compact string (pipe-separated)
+            // Exclude dob, status, msg
+            var sb = new StringBuilder();
+
+            sb.Append(student.RollCode).Append("|");
+            sb.Append(student.RollNo).Append("|");
+            sb.Append(student.BsebUniqueID).Append("|");
+
+            sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
+
+            sb.Append(student.FathersName?.Replace("|", "")).Append("|");
+            sb.Append(student.MothersName?.Replace("|", "")).Append("|");
+            //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
+            sb.Append(student.RegistrationNo).Append("|");
+            //sb.Append(student.CollegeName).Append("|");
+
+            // 🔹 Map Faculty full name to single character
+            var facultyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "ARTS", "A" },
+                { "SCIENCE", "S" },
+                { "COMMERCE", "C" },
+                { "VOCATIONAL", "V" }
+            };
+
+            // 🔹 Get the short code
+            string facultyCode = student.Faculty != null && facultyMap.ContainsKey(student.Faculty) ? facultyMap[student.Faculty] : "";
+
+            // 🔹 Append to your compact string
+            sb.Append(facultyCode).Append("|");
+
+            // sb.Append(student.TotalAggregateMarkinNumber.Replace("|", "")).Append("|");
+
+            sb.Append(student.Division?.Replace("|", "")).Append("|");
+            sb.Append(student.Nationality?.Replace("|", ""));
+
+            // 🔹 Define a mapping for subject groups
+            //        var groupMap = new Dictionary<string, string>
+            //{
+            //    {"1. अनिवार्य Compulsory", "1"},
+            //    {"2. ऐच्छिक Elective", "2"},
+            //    {"3. अतिरिक्त Additional", "3"},
+            //    {"4. Additional subject group Vocational (100 marks)", "4"}
+            //};
+
+
+            // 🔹 Add subjects compactly (all groups)
+            foreach (var sub in student.Subjects.OrderBy(s => s.SubjectDisplayOrder))
+            {
+                sb.Append("|")
+                  .Append(sub.SubjectName?.Replace("|", ""));
+            }
+            var payloadString = sb.ToString();
+
+            // 🔹 Remove any leading/trailing braces
+            payloadString = payloadString.Trim('{', '}');
+
+            // 🔹 Convert to bytes
+            var bytes = Encoding.UTF8.GetBytes(payloadString);
+
+
+
+            // 🔹 Compress
+            var compressed = Compress(bytes);
+
+            // 🔹 Encrypt
+            var encrypted = Encrypt(compressed);
+
+            // var encryptedwithoutkey = EncryptWithoutKey(encrypted);
+
+            // 🔹 Base45 encode for QR
+            // return Base45Encode(encrypted);
+            return Base85Encode(encrypted);
+        }
+        public static string CompartGenerateAnnualOriginalEncryptedPayload(Model.CompartStudentResult student)
+        {
+            // 🔹 Step 1: Create compact string (pipe-separated)
+            // Exclude dob, status, msg
+            var sb = new StringBuilder();
+
+            sb.Append(student.RollCode).Append("|");
+            sb.Append(student.RollNo).Append("|");
+            sb.Append(student.BsebUniqueID).Append("|");
+
+            sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
+
+            sb.Append(student.FathersName?.Replace("|", "")).Append("|");
+            //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
+            sb.Append(student.RegistrationNo).Append("|");
+            //sb.Append(student.CollegeName).Append("|");
+
+            // 🔹 Map Faculty full name to single character
+            var facultyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "ARTS", "A" },
+                { "SCIENCE", "S" },
+                { "COMMERCE", "C" },
+                { "VOCATIONAL", "V" }
+            };
+
+            // 🔹 Get the short code
+            string facultyCode = student.Faculty != null && facultyMap.ContainsKey(student.Faculty) ? facultyMap[student.Faculty] : "";
+
+            // 🔹 Append to your compact string
+            sb.Append(facultyCode).Append("|");
+
+            // sb.Append(student.TotalAggregateMarkinNumber.Replace("|", "")).Append("|");
+
+            sb.Append(student.Division?.Replace("|", ""));
+
+            // 🔹 Define a mapping for subject groups
+            var groupMap = new Dictionary<string, string>
+    {
+        {"1. अनिवार्य Compulsory", "1"},
+        {"2. ऐच्छिक Elective", "2"},
+        {"3. अतिरिक्त Additional", "3"},
+        {"4. Additional subject group Vocational (100 marks)", "4"}
+    };
+
+
+            // 🔹 Add subjects compactly (all groups)
+            foreach (var sub in student.SubjectResults)
+            {
+                var groupId = groupMap.ContainsKey(sub.SubjectGroupName) ? groupMap[sub.SubjectGroupName] : "0";
+
+                sb.Append("|")
+                  .Append(groupId).Append(",")                        // Subject group ID
+                  .Append(sub.Sub?.Replace("|", "")).Append(",");      // Subject name
+
+            }
+
+            var payloadString = sb.ToString();
+
+            // 🔹 Remove any leading/trailing braces
+            payloadString = payloadString.Trim('{', '}');
+
+            // 🔹 Convert to bytes
+            var bytes = Encoding.UTF8.GetBytes(payloadString);
+
+
+
+            // 🔹 Compress
+            var compressed = Compress(bytes);
+
+            // 🔹 Encrypt
+            var encrypted = Encrypt(compressed);
+
+            // var encryptedwithoutkey = EncryptWithoutKey(encrypted);
+
+            // 🔹 Base45 encode for QR
+            // return Base45Encode(encrypted);
+            return Base85Encode(encrypted);
+        }
         public static string GenerateProvisionalEncryptedPayload(Model.StudentResult student)
         {
             // 🔹 Step 1: Create compact string (pipe-separated)
