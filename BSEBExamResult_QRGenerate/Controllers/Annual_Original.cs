@@ -184,7 +184,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     // Step 5: Flush batch to DB every 5000 records
                     if (batch.Count >= BATCH_SIZE)
                     {
-                        await _dbHelper.BulkSaveAnnualOriginalEXAMQREncData(batch);
+                        await _dbHelper.BulkSaveCompartAnnualOriginalEXAMQREncData(batch);
                         _logger.LogInformation("Flushed batch. Total saved so far: {Count}", successCount);
                         batch.Clear();
                     }
