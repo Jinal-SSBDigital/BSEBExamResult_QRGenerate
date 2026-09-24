@@ -13,12 +13,12 @@ namespace BSEBExamResult_QRGenerate.Controllers
         private readonly DbHelper _dbHelper;
         private readonly ILogger<CompartQRGenerateController> _logger;
 
-        public CompartQRGenerateController(AppDBContext context, ILogger<CompartQRGenerateController> logger)
+     
+        public CompartQRGenerateController(AppDBContext context, IConfiguration config, ILogger<CompartQRGenerateController> logger)
         {
-            _dbHelper = new DbHelper(context);
+            _dbHelper = new DbHelper(context, config);
             _logger = logger;
         }
-
 
         // ✅ Bulk encrypt ALL students and save to DB
         [HttpPost("CompartQRGenerateAndSaveAllEncrypted")]
