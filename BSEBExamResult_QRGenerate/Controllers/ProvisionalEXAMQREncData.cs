@@ -13,12 +13,16 @@ namespace BSEBExamResult_QRGenerate.Controllers
         private readonly DbHelper _dbHelper;
         private readonly ILogger<ProvisionalEXAMQREncData> _logger;
 
-        public ProvisionalEXAMQREncData(AppDBContext context, ILogger<ProvisionalEXAMQREncData> logger)
+        //public ProvisionalEXAMQREncData(AppDBContext context, ILogger<ProvisionalEXAMQREncData> logger)
+        //{
+        //    _dbHelper = new DbHelper(context);
+        //    _logger = logger;
+        //}
+        public ProvisionalEXAMQREncData(AppDBContext context, IConfiguration config, ILogger<ProvisionalEXAMQREncData> logger)
         {
-            _dbHelper = new DbHelper(context);
+            _dbHelper = new DbHelper(context, config);
             _logger = logger;
         }
-
         // ✅ Bulk encrypt ALL students and save to DB
         [HttpPost("GenerateProvisionalEXAMQREncData")]
         public async Task<IActionResult> GenerateProvisionalEXAMQREncData()
