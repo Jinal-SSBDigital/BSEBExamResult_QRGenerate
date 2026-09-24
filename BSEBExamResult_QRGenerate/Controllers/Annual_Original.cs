@@ -123,7 +123,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
             _logger.LogInformation("Bulk QR Encryption started at {Time}", DateTime.Now);
 
             // Step 1: Get all RollCode + RollNo pairs directly from table
-            var allRolls = await _dbHelper.AnnualOriginal_RollCodesForQR();
+            var allRolls = await _dbHelper.AnnualOriginalCompartCert_RollCodesForQR();
             _logger.LogInformation("Total students fetched: {Count}", allRolls.Count);
 
             int successCount = 0;
@@ -138,7 +138,7 @@ namespace BSEBExamResult_QRGenerate.Controllers
                 try
                 {
                     // Step 2: Get full student data via LoginSp
-                    var student = await _dbHelper.GetCompartStudentResultAsync(rollCode, rollNo);
+                    var student = await _dbHelper.GetCompartCertificateResultForQR(rollCode, rollNo);
 
                     if (student == null || student.Status != 1)
                     {
@@ -151,8 +151,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
                     //string encrypted = QrUtility.GenerateEncryptedPayloadCompact(student);
                     //string encrypted = "P" + QrUtility.GenerateProvisionalEncryptedPayload(student);
                     string encrypted = string.Equals(student.ExamType, "COMPARTMENTAL", StringComparison.OrdinalIgnoreCase)
-                       ? "P2C" + QrUtility.CompartGenerateAnnualOriginalEncryptedPayload(student)
-                       : "P2S" + QrUtility.CompartGenerateAnnualOriginalEncryptedPayload(student);
+                       ? "6C" + QrUtility.GenerateAnnualOriginalEncryptedPayload(student)
+                       : "6S" + QrUtility.GenerateAnnualOriginalEncryptedPayload(student);
 
                     // var qrPath = GenerateQrImage(encrypted, rollNo, rollCode);
                     int encryptedLength = encrypted.Length;
