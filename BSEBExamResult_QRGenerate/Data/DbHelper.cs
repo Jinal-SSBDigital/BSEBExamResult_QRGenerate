@@ -22,6 +22,27 @@ namespace BSEBExamResult_QRGenerate.Data
             _dbOriginalCertiQRData = config.GetConnectionString("dbOriginalCertiQRData") ?? throw new InvalidOperationException("Connection string 'dbOriginalCertiQRData' not found.");
         }
 
+        private static async Task<SqlConnection> OpenConnectionAsync(string connectionString, string connectionName)
+        {
+            var conn = new SqlConnection(connectionString);
+            try
+            {
+                await conn.OpenAsync();
+                return conn;
+            }
+            catch (SqlException ex)
+            {
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                conn.Dispose();
+                throw new InvalidOperationException(
+                    $"Failed to open connection '{connectionName}'. " +
+                    $"Server='{builder.DataSource}', Database='{builder.InitialCatalog}'. " +
+                    $"Check that: (1) the server name is spelled correctly, " +
+                    $"(2) SQL Server is running and reachable from this machine (try 'sqlcmd -S {builder.DataSource} -d {builder.InitialCatalog} -E'), " +
+                    $"(3) TCP/IP is enabled in SQL Server Configuration Manager, " +
+                    $"(4) firewall allows the connection. Original error: {ex.Message}", ex);
+            }
+        }
 
         //new
         // 🔹 Get ALL rollcodes by rollno
@@ -497,6 +518,67 @@ namespace BSEBExamResult_QRGenerate.Data
             }
         }
 
+        public async Task<List<(string RollCode, string RollNo)>> AnnualOriginal_RollCodesForQR()
+        {
+            try
+            {
+                var result = new List<(string, string)>();
+                using var conn = await OpenConnectionAsync(_dbCerti, nameof(_dbCerti));
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "sp_GetAnnualOriginal_RollCodesForQR"; // ← your new SP
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 300; // 5 min timeout for large data
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    result.Add((
+                        reader["RollCode"].ToString()!,
+                        reader["RollNo"].ToString()!
+                    ));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+        public async Task<List<(string RollCode, string RollNo)>> AnnualOriginalCompartCert_RollCodesForQR()
+        {
+            try
+            {
+                var result = new List<(string, string)>();
+                using var conn = await OpenConnectionAsync(_dbCerti, nameof(_dbCerti));
+
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "sp_GetAnnualOriginalCompart_RollCodesForQR"; // ← your new SP
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = 300; // 5 min timeout for large data
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    result.Add((
+                        reader["RollCode"].ToString()!,
+                        reader["RollNo"].ToString()!
+                    ));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+
         public async Task<CertificateStudentResult?> GetAnnualStudentResultAsync(string rollcode, string rollno)
         {
             try
@@ -578,55 +660,100 @@ namespace BSEBExamResult_QRGenerate.Data
                 throw;
             }
         }
-        public async Task<List<(string RollCode, string RollNo)>> AnnualOriginal_RollCodesForQR()
+
+        public async Task<CertificateStudentResult?> GetCompartCertificateResultForQR(string rollcode, string rollno)
         {
             try
             {
-                var result = new List<(string, string)>();
-                using var conn = new SqlConnection(_dbCerti);   // ✅
+                using var conn = new SqlConnection(_dbCerti);
                 if (conn.State != ConnectionState.Open)
                     await conn.OpenAsync();
 
                 using var cmd = conn.CreateCommand();
-                cmd.CommandText = "sp_GetAnnualOriginal_RollCodesForQR"; // ← your new SP
+                cmd.CommandText = "sp_CompartCertificateResultForQR";
                 cmd.CommandType = CommandType.StoredProcedure;
-                cmd.CommandTimeout = 300; // 5 min timeout for large data
+
+                cmd.Parameters.Add(new SqlParameter("@rollcode", rollcode));
+                cmd.Parameters.Add(new SqlParameter("@rollno", rollno));
 
                 using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+
+                if (!await reader.ReadAsync())
+                    return null;
+
+                // ⚠️ FIX: reader.GetInt32(...) requires the column to be exactly
+                // SQL `int`. If "status" (or any other numeric column here) is
+                // actually tinyint/smallint/bigint/decimal, GetInt32 throws
+                // InvalidCastException ("Unable to cast object of type 'Byte' to
+                // type 'Int32'"). Convert.ToInt32(...) accepts any numeric
+                // source type and converts safely, so it's used everywhere below
+                // instead of GetInt32.
+                var status = Convert.ToInt32(reader["status"]);
+                var msg = reader["msg"]?.ToString();
+
+                // Invalid roll code/no: this result set only has status + msg.
+                // Return immediately — reading any other column here would throw.
+                if (status != 1)
                 {
-                    result.Add((
-                        reader["RollCode"].ToString()!,
-                        reader["RollNo"].ToString()!
-                    ));
+                    return new CertificateStudentResult { Status = status, Msg = msg };
                 }
 
-                return result;
+                var student = new CertificateStudentResult
+                {
+                    Status = status,
+                    Msg = msg,
+                    RollCode = reader["RollCode"]?.ToString(),
+                    RollNo = reader["rollno"]?.ToString(),
+                    RegistrationNo = reader["RegistrationNo"]?.ToString(),
+                    BsebUniqueID = reader["BsebUniqueID"]?.ToString(),
+                    NameoftheCandidate = reader["NameoftheCandidate"]?.ToString(),
+                    FathersName = reader["FathersName"]?.ToString(),
+                    MothersName = reader["MothersName"]?.ToString(),
+                    Gender = reader["Gender"]?.ToString(),
+                    CollegeName = reader["CollegeName"]?.ToString(),
+                    DistrictName = reader["DistrictName"]?.ToString(),
+                    Faculty = reader["FACULTY"]?.ToString(),
+                    Division = reader["DIVISION"]?.ToString(),
+                    TotalMarks = reader["TotalMarks"]?.ToString(),
+                    Nationality = reader["Nationality"]?.ToString(),
+                    ExamType = reader["ExamType"]?.ToString()
+                };
+
+                while (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var displayOrderValue = reader["SubjectDisplayOrder"];
+
+                        student.Subjects.Add(new CertificateSubject
+                        {
+                            SubjectName = reader["SubjectName"]?.ToString(),
+                            SubjectDisplayOrder = (displayOrderValue == DBNull.Value)
+                                ? null
+                                : Convert.ToInt32(displayOrderValue)
+                        });
+                    }
+                }
+
+                return student;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-
-                throw ex;
+                throw;
             }
-         
         }
+       
 
-     
+
 
         public async Task BulkSaveAnnualOriginalEXAMQREncData(List<AnnualOriginalEXAMQREncdData> records)
         {
             if (records == null || records.Count == 0)
                 return;
-            using var conn = new SqlConnection(_dbCerti);   // ✅
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
 
-
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
+            using var conn = await OpenConnectionAsync(_dbOriginalCertiQRData, nameof(_dbOriginalCertiQRData));
 
             using var transaction = conn.BeginTransaction();
-
             try
             {
                 var dt = new DataTable();
@@ -636,9 +763,7 @@ namespace BSEBExamResult_QRGenerate.Data
                 dt.Columns.Add("QRLength", typeof(int));
 
                 foreach (var r in records)
-                {
                     dt.Rows.Add(r.RollCode, r.RollNo, r.EncryptedData, r.QRLength);
-                }
 
                 using var bulk = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, transaction)
                 {
@@ -654,26 +779,22 @@ namespace BSEBExamResult_QRGenerate.Data
                 bulk.ColumnMappings.Add("QRLength", "QRLength");
 
                 await bulk.WriteToServerAsync(dt);
-
                 await transaction.CommitAsync();
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
             }
         }
 
+        // ✅ UPDATED: uses OpenConnectionAsync, opens the connection exactly once.
         public async Task BulkSaveCompartAnnualOriginalEXAMQREncData(List<AnnualOriginalEXAMQREncdData> records)
         {
             if (records == null || records.Count == 0)
                 return;
 
-            using var conn = new SqlConnection(_dbOriginalCertiQRData); // ✅
-
-
-            if (conn.State != ConnectionState.Open)
-                await conn.OpenAsync();
+            using var conn = await OpenConnectionAsync(_dbOriginalCertiQRData, nameof(_dbOriginalCertiQRData));
 
             using var transaction = conn.BeginTransaction();
 
@@ -692,13 +813,12 @@ namespace BSEBExamResult_QRGenerate.Data
 
                 using var bulk = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, transaction)
                 {
-                    DestinationTableName = "[OriginalCertiQRData].[dbo].[SpecialCompartExam2026]",
+                    DestinationTableName = "[OriginalCertiQRData].[dbo].[SpclCompart26OrgQRdata]",
                     BatchSize = 2000,
                     BulkCopyTimeout = 600,
                     EnableStreaming = true
                 };
 
-                //bulk.ColumnMappings.Add("Id", "Id");
                 bulk.ColumnMappings.Add("RollCode", "RollCode");
                 bulk.ColumnMappings.Add("RollNo", "RollNo");
                 bulk.ColumnMappings.Add("EncryptedData", "EncryptedData");
@@ -708,7 +828,7 @@ namespace BSEBExamResult_QRGenerate.Data
 
                 await transaction.CommitAsync();
             }
-            catch
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 throw;
