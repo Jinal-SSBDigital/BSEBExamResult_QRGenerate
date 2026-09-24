@@ -173,7 +173,7 @@ namespace BSEBExamResult_QRGenerate.Data
             sb.Append(student.NameoftheCandidate?.Replace("|", "")).Append("|");
 
             sb.Append(student.FathersName?.Replace("|", "")).Append("|");
-            sb.Append(student.MothersName?.Replace("|", "")).Append("|");
+            //sb.Append(student.MothersName?.Replace("|", "")).Append("|");
             //sb.Append(student.CollegeName?.Replace("|", "")).Append("|");
             sb.Append(student.RegistrationNo).Append("|");
             //sb.Append(student.CollegeName).Append("|");
@@ -195,8 +195,8 @@ namespace BSEBExamResult_QRGenerate.Data
 
             // sb.Append(student.TotalAggregateMarkinNumber.Replace("|", "")).Append("|");
 
-            sb.Append(student.Division?.Replace("|", "")).Append("|");
-            sb.Append(student.Nationality?.Replace("|", ""));
+            sb.Append(student.Division?.Replace("|", ""));
+            //sb.Append(student.Nationality?.Replace("|", ""));
 
             // 🔹 Define a mapping for subject groups
             //        var groupMap = new Dictionary<string, string>
