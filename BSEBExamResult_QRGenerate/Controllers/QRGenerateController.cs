@@ -20,12 +20,16 @@ namespace BSEBExamResult_QRGenerate.Controllers
         private readonly DbHelper _dbHelper;
         private readonly ILogger<QRGenerateController> _logger;
 
-        public QRGenerateController(AppDBContext context, ILogger<QRGenerateController> logger)
+        //public QRGenerateController(AppDBContext context, ILogger<QRGenerateController> logger)
+        //{
+        //    _dbHelper = new DbHelper(context);
+        //    _logger = logger;
+        //}
+        public QRGenerateController(AppDBContext context, IConfiguration config, ILogger<QRGenerateController> logger)
         {
-            _dbHelper = new DbHelper(context);
+            _dbHelper = new DbHelper(context, config);
             _logger = logger;
         }
-
 
         // ✅ Bulk encrypt ALL students and save to DB
         [HttpPost("GenerateAndSaveAllEncrypted")]
