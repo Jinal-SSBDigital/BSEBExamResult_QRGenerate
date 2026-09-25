@@ -91,9 +91,59 @@ namespace BSEBExamResult_QRGenerate.Data
             string compact = DecodeToCompactString(enc);
             return ParseCompactStringToStudent(compact);
         }
+        public static CertificateStudentResult DecodeToOriginalStudent(string enc)
+        {
+            string compact = DecodeToCompactString(enc);
+            return ParseOriginalCompactStringToStudent(compact);
+            //return ParseCompactStringToStudent(compact);
+        }
 
         // 🔓 Parse pipe-separated compact string to StudentResult
 
+        private static CertificateStudentResult ParseOriginalCompactStringToStudent(string compact)
+        {
+            var parts = compact.Split('|');
+
+            var student = new CertificateStudentResult
+            {
+                RollCode = parts[0],
+                RollNo = parts[1],
+                BsebUniqueID = parts[2],
+                NameoftheCandidate = parts[3],
+                FathersName = parts[4],
+                //CollegeName = "", // Not included in encryption
+                RegistrationNo = parts[5],
+                Faculty = ReverseFacultyMap(parts[6]), // Convert short code back to full name
+                //TotalAggregateMarkinNumber = parts[7],
+                Division = parts[8],
+                Subjects = new List<CertificateSubject>()
+            };
+
+            // Subjects start from index 9
+            for (int i = 9; i < parts.Length; i++)
+            {
+                var subParts = parts[i].Split(',');
+
+                if (subParts.Length >= 9) // There are 9 fields per subject
+                {
+                    student.Subjects.Add(new CertificateSubject
+                    {
+                        SubjectName = ReverseGroupMap(subParts[0]) // optional
+                        //SubjectDisplayOrder =  ReverseGroupMap(subParts[1])
+                        //Sub = subParts[1],
+                        //PassMark = string.IsNullOrEmpty(subParts[2]) ? (int?)null : int.Parse(subParts[2]),
+                        //Theory = subParts[3],
+                        //OB_PR = subParts[4],
+                        //GRC_THO = subParts[5],
+                        //GRC_PR = subParts[6],
+                        //CCEMarks = subParts[7],
+                        //TotSub = subParts[8]
+                    });
+                }
+            }
+
+            return student;
+        }
         private static StudentResult ParseCompactStringToStudent(string compact)
         {
             var parts = compact.Split('|');

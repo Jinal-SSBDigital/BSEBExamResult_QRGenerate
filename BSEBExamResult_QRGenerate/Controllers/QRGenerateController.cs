@@ -175,7 +175,8 @@ namespace BSEBExamResult_QRGenerate.Controllers
 
             try
             {
-                var student = QrDecryptUtility.DecodeToStudent(enc);
+                //var student = QrDecryptUtility.DecodeToStudent(enc);
+                var student = QrDecryptUtility.DecodeToOriginalStudent(enc);
 
                 if (student == null)
                     return BadRequest(new { success = false, message = "Invalid data" });
