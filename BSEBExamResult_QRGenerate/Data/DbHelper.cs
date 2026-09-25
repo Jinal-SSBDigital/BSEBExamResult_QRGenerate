@@ -641,14 +641,14 @@ namespace BSEBExamResult_QRGenerate.Data
                 {
                     while (await reader.ReadAsync())
                     {
-                        var displayOrderValue = reader["SubjectDisplayOrder"];
+                        var SubjectPaperGroupId = reader["SubjectPaperGroupId"];
 
                         student.Subjects.Add(new CertificateSubject
                         {
                             SubjectName = reader["SubjectName"]?.ToString(),
-                            SubjectDisplayOrder = (displayOrderValue == DBNull.Value)
-                                ? null
-                                : Convert.ToInt32(displayOrderValue)
+                            SubjectPaperCode = reader["SubjectPaperCode"]?.ToString(),
+                            SubjectGroupName = reader["SubjectGroupName"]?.ToString(),
+                            SubjectPaperGroupId = (SubjectPaperGroupId == DBNull.Value)? null: Convert.ToInt32(SubjectPaperGroupId)
                         });
                     }
                 }
@@ -723,14 +723,14 @@ namespace BSEBExamResult_QRGenerate.Data
                 {
                     while (await reader.ReadAsync())
                     {
-                        var displayOrderValue = reader["SubjectDisplayOrder"];
+                        var SubjectPaperGroupId = reader["SubjectPaperGroupId"];
 
                         student.Subjects.Add(new CertificateSubject
                         {
                             SubjectName = reader["SubjectName"]?.ToString(),
-                            SubjectDisplayOrder = (displayOrderValue == DBNull.Value)
-                                ? null
-                                : Convert.ToInt32(displayOrderValue)
+                            SubjectPaperCode = reader["SubjectPaperCode"]?.ToString(),
+                            SubjectGroupName = reader["SubjectGroupName"]?.ToString(),
+                            SubjectPaperGroupId = (SubjectPaperGroupId == DBNull.Value) ? null : Convert.ToInt32(SubjectPaperGroupId)
                         });
                     }
                 }
