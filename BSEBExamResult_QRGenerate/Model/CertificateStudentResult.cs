@@ -24,6 +24,8 @@
     public class CertificateSubject
     {
         public string? SubjectName { get; set; }
-        public int? SubjectDisplayOrder { get; set; }
+        public string? SubjectPaperCode { get; set; }
+        public string? SubjectGroupName { get; set; }
+        public int? SubjectPaperGroupId { get; set; }
     }
 }
