@@ -114,7 +114,7 @@ namespace BSEBExamResult_QRGenerate.Data
                 //CollegeName = "", // Not included in encryption
                 RegistrationNo = parts[5],
                 Faculty = ReverseFacultyMap(parts[6]), // Convert short code back to full name
-                //TotalAggregateMarkinNumber = parts[7],
+                                                       //TotalAggregateMarkinNumber = parts[7],
                 Division = parts[8],
                 Subjects = new List<CertificateSubject>()
             };
@@ -122,22 +122,23 @@ namespace BSEBExamResult_QRGenerate.Data
             // Subjects start from index 9
             for (int i = 9; i < parts.Length; i++)
             {
+                if (string.IsNullOrWhiteSpace(parts[i]))
+                    continue;
+
                 var subParts = parts[i].Split(',');
 
-                if (subParts.Length >= 9) // There are 9 fields per subject
+                // ASSUMPTION: 3 fields per subject -> groupId, subjectPaperCode, subjectName
+                // Adjust the field count / index order here if your QrUtility encoder differs.
+                if (subParts.Length >= 2)
                 {
+                    int? groupId = int.TryParse(subParts[0], out var gid) ? gid : (int?)null;
+
                     student.Subjects.Add(new CertificateSubject
                     {
-                        SubjectName = ReverseGroupMap(subParts[0]) // optional
-                        //SubjectDisplayOrder =  ReverseGroupMap(subParts[1])
-                        //Sub = subParts[1],
-                        //PassMark = string.IsNullOrEmpty(subParts[2]) ? (int?)null : int.Parse(subParts[2]),
-                        //Theory = subParts[3],
-                        //OB_PR = subParts[4],
-                        //GRC_THO = subParts[5],
-                        //GRC_PR = subParts[6],
-                        //CCEMarks = subParts[7],
-                        //TotSub = subParts[8]
+                        SubjectPaperGroupId = groupId,
+                        SubjectGroupName = groupId.HasValue ? ReverseGroupMap(subParts[0]) : null,
+                        SubjectPaperCode = subParts[1]
+                        //SubjectName = subParts[2]
                     });
                 }
             }
